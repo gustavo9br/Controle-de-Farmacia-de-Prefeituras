@@ -1,0 +1,8 @@
+ /uploads/
+ /storage/
+ /vendor/
++/config/database.php
+ .env
+ .env.*
+ npm-debug.log*
+ yarn-debug.log*
