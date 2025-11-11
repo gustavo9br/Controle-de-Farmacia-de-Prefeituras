@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Busca Medicamentos</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        input { padding: 10px; width: 300px; margin: 10px 0; }
+        #resultados { border: 1px solid #ccc; padding: 15px; margin-top: 20px; min-height: 100px; background: #f9f9f9; }
+        .loading { color: #666; font-style: italic; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste da Busca de Medicamentos</h1>
+    
+    <div>
+        <label for="medicamentoSearch">Digite o nome do medicamento:</label><br>
+        <input type="text" id="medicamentoSearch" placeholder="Ex: dipirona, paracetamol..." autocomplete="off">
+    </div>
+    
+    <div id="resultados">Digite pelo menos 2 caracteres para buscar...</div>
+    
+    <h2>Medicamentos disponíveis no banco:</h2>
+    <ul>
+        <li>Dipirona 500mg (código: 7891234567890, estoque: 787)</li>
+        <li>Paracetamol 750mg (código: 7891234567891, estoque: 0)</li>
+        <li>Omeprazol 20mg (código: 7891234567892, estoque: 0)</li>
+        <li>Amoxicilina 500mg (código: 7891234567893, estoque: 26)</li>
+        <li>Losartana 50mg (código: 7891234567894, estoque: 199)</li>
+    </ul>
+    
+    <script>
+    let searchTimeout;
+    
+    document.getElementById('medicamentoSearch').addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        console.log('🔍 Query digitada:', query);
+        
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            document.getElementById('resultados').innerHTML = 'Digite pelo menos 2 caracteres para buscar...';
+            return;
+        }
+        
+        document.getElementById('resultados').innerHTML = '<div class="loading">🔄 Buscando...</div>';
+        
+        searchTimeout = setTimeout(() => {
+            buscarMedicamento(query);
+        }, 300);
+    });
+    
+    async function buscarMedicamento(query) {
+        try {
+            console.log('📡 Fazendo requisição para:', `api/test_buscar_medicamento.php?q=${encodeURIComponent(query)}`);
+            
+            const response = await fetch(`api/test_buscar_medicamento.php?q=${encodeURIComponent(query)}`);
+            
+            console.log('📊 Response status:', response.status);
+            console.log('📋 Response headers:', [...response.headers.entries()]);
+            
+            const text = await response.text();
+            console.log('📄 Response text:', text);
+            
+            let data;
+            try {
+                data = JSON.parse(text);
+                console.log('✅ Response JSON:', data);
+            } catch (parseError) {
+                console.error('❌ Erro ao parsear JSON:', parseError);
+                document.getElementById('resultados').innerHTML = `
+                    <div class="error">
+                        <strong>Erro ao parsear resposta:</strong><br>
+                        <pre style="background: white; padding: 10px; font-size: 12px;">${text}</pre>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (data.success && data.medicamentos && data.medicamentos.length > 0) {
+                document.getElementById('resultados').innerHTML = `
+                    <div class="success">
+                        <strong>✅ ${data.medicamentos.length} medicamento(s) encontrado(s):</strong><br><br>
+                        ${data.medicamentos.map(med => `
+                            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; background: white;">
+                                <strong>${med.nome}</strong><br>
+                                <small>Apresentação: ${med.apresentacao || 'N/A'}</small><br>
+                                <small>Código: ${med.codigo_barras || 'N/A'}</small><br>
+                                <small>Estoque: ${med.estoque_atual}</small><br>
+                                <small>Lote ID: ${med.lote_id || 'N/A'}</small>
+                            </div>
+                        `).join('')}
+                        <br>
+                        <small><strong>Debug:</strong> ${JSON.stringify(data.debug)}</small>
+                    </div>
+                `;
+            } else {
+                document.getElementById('resultados').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Nenhum medicamento encontrado</strong><br>
+                        <small>Message: ${data.message || 'Sem mensagem'}</small><br>
+                        <small>Debug: ${JSON.stringify(data.debug || {})}</small>
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            console.error('💥 Erro na busca:', error);
+            document.getElementById('resultados').innerHTML = `
+                <div class="error">
+                    <strong>💥 Erro na requisição:</strong><br>
+                    ${error.message}
+                </div>
+            `;
+        }
+    }
+    </script>
+</body>
+</html>

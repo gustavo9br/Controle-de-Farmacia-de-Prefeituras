@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug API - Com Autenticação</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; }
+        input { padding: 10px; width: 300px; margin: 10px 0; }
+        .loading { color: #666; font-style: italic; }
+        .error { color: red; }
+        .success { color: green; }
+        pre { background: white; padding: 10px; border: 1px solid #ddd; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Debug API - Com Autenticação</h1>
+    
+    <div class="section">
+        <h2>Teste 1: API Original (com autenticação)</h2>
+        <label for="medicamentoSearch1">Digite o nome do medicamento:</label><br>
+        <input type="text" id="medicamentoSearch1" placeholder="Ex: dipirona" autocomplete="off">
+        <div id="resultado1" style="margin-top: 10px;">Digite para buscar...</div>
+    </div>
+    
+    <div class="section">
+        <h2>Teste 2: API de Teste (sem autenticação)</h2>
+        <label for="medicamentoSearch2">Digite o nome do medicamento:</label><br>
+        <input type="text" id="medicamentoSearch2" placeholder="Ex: dipirona" autocomplete="off">
+        <div id="resultado2" style="margin-top: 10px;">Digite para buscar...</div>
+    </div>
+    
+    <div class="section">
+        <h2>Console de Debug</h2>
+        <div id="console" style="max-height: 400px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace;"></div>
+    </div>
+    
+    <script>
+    // Console customizado
+    const consoleDiv = document.getElementById('console');
+    function log(message, type = 'info') {
+        const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#0ff';
+        consoleDiv.innerHTML += `<div style="color: ${color};">[${new Date().toLocaleTimeString()}] ${message}</div>`;
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        console.log(message);
+    }
+    
+    let timeout1, timeout2;
+    
+    // Teste 1: API Original
+    document.getElementById('medicamentoSearch1').addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        clearTimeout(timeout1);
+        
+        if (query.length < 2) {
+            document.getElementById('resultado1').innerHTML = 'Digite pelo menos 2 caracteres...';
+            return;
+        }
+        
+        document.getElementById('resultado1').innerHTML = '<div class="loading">🔄 Buscando na API original...</div>';
+        log(`🔍 Teste 1 - Query: "${query}"`);
+        
+        timeout1 = setTimeout(() => {
+            buscarAPI1(query);
+        }, 300);
+    });
+    
+    async function buscarAPI1(query) {
+        try {
+            const url = `api/buscar_medicamento.php?q=${encodeURIComponent(query)}`;
+            log(`📡 Teste 1 - Fazendo requisição: ${url}`);
+            
+            const response = await fetch(url);
+            log(`📊 Teste 1 - Status: ${response.status}`);
+            log(`📋 Teste 1 - Headers: ${JSON.stringify([...response.headers.entries()])}`);
+            
+            const text = await response.text();
+            log(`📄 Teste 1 - Response length: ${text.length} chars`);
+            
+            try {
+                const data = JSON.parse(text);
+                log(`✅ Teste 1 - JSON parseado com sucesso`, 'success');
+                
+                document.getElementById('resultado1').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Resposta recebida:</strong>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (parseError) {
+                log(`❌ Teste 1 - Erro ao parsear JSON: ${parseError.message}`, 'error');
+                document.getElementById('resultado1').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Erro ao parsear JSON</strong>
+                        <pre>${text.substring(0, 500)}</pre>
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            log(`💥 Teste 1 - Erro na requisição: ${error.message}`, 'error');
+            document.getElementById('resultado1').innerHTML = `
+                <div class="error">
+                    <strong>💥 Erro:</strong> ${error.message}
+                </div>
+            `;
+        }
+    }
+    
+    // Teste 2: API de Teste
+    document.getElementById('medicamentoSearch2').addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        clearTimeout(timeout2);
+        
+        if (query.length < 2) {
+            document.getElementById('resultado2').innerHTML = 'Digite pelo menos 2 caracteres...';
+            return;
+        }
+        
+        document.getElementById('resultado2').innerHTML = '<div class="loading">🔄 Buscando na API de teste...</div>';
+        log(`🔍 Teste 2 - Query: "${query}"`);
+        
+        timeout2 = setTimeout(() => {
+            buscarAPI2(query);
+        }, 300);
+    });
+    
+    async function buscarAPI2(query) {
+        try {
+            const url = `api/test_buscar_medicamento.php?q=${encodeURIComponent(query)}`;
+            log(`📡 Teste 2 - Fazendo requisição: ${url}`);
+            
+            const response = await fetch(url);
+            log(`📊 Teste 2 - Status: ${response.status}`);
+            
+            const text = await response.text();
+            log(`📄 Teste 2 - Response length: ${text.length} chars`);
+            
+            try {
+                const data = JSON.parse(text);
+                log(`✅ Teste 2 - JSON parseado com sucesso`, 'success');
+                
+                document.getElementById('resultado2').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Resposta recebida:</strong>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (parseError) {
+                log(`❌ Teste 2 - Erro ao parsear JSON: ${parseError.message}`, 'error');
+                document.getElementById('resultado2').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Erro ao parsear JSON</strong>
+                        <pre>${text.substring(0, 500)}</pre>
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            log(`💥 Teste 2 - Erro na requisição: ${error.message}`, 'error');
+            document.getElementById('resultado2').innerHTML = `
+                <div class="error">
+                    <strong>💥 Erro:</strong> ${error.message}
+                </div>
+            `;
+        }
+    }
+    
+    log('🚀 Sistema de debug iniciado', 'success');
+    log('ℹ️ Faça login primeiro em /admin para testar a API original');
+    </script>
+</body>
+</html>

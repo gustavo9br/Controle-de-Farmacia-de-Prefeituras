@@ -1,0 +1,15 @@
+# Permitir acesso a arquivos de imagem
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Bloquear acesso a outros tipos de arquivo
+<FilesMatch "\.(?!jpg|jpeg|png|gif|webp$)([^.]+)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Desabilitar listagem de diretórios
+Options -Indexes
+

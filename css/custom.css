@@ -1,0 +1,246 @@
+/* Estilos personalizados para o sistema de farmácia */
+:root {
+    --primary-color: #4c9be8;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --white-color: #ffffff;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* Estilos modernos inspirados no Tailwind */
+.bg-pharmacy {
+    background-color: var(--primary-color);
+}
+
+/* Cartões com cantos mais arredondados */
+.card {
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    border: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    border-top-left-radius: 16px !important;
+    border-top-right-radius: 16px !important;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.card-footer {
+    border-bottom-left-radius: 16px !important;
+    border-bottom-right-radius: 16px !important;
+}
+
+/* Botões modernos */
+.btn {
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #3a89d6;
+    border-color: #3a89d6;
+    box-shadow: 0 4px 6px rgba(76, 155, 232, 0.25);
+}
+
+/* Campos de formulários modernos */
+.form-control {
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(76, 155, 232, 0.25);
+}
+
+.form-label {
+    font-weight: 500;
+    color: #4a5568;
+    margin-bottom: 0.5rem;
+}
+
+/* Layout da página de login */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f7fafc;
+    padding: 2rem;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-logo img {
+    height: 80px;
+}
+
+.login-title {
+    font-weight: 800;
+    color: #2d3748;
+    font-size: 1.875rem;
+    letter-spacing: -0.025em;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.login-subtitle {
+    color: #718096;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+/* Alertas mais modernos */
+.alert {
+    border-radius: 10px;
+    border: none;
+    padding: 1rem 1.25rem;
+}
+
+/* Navegação */
+.navbar {
+    box-shadow: var(--shadow);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+/* Dashboard cards */
+.dashboard-icon {
+    font-size: 2.25rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    background-color: rgba(76, 155, 232, 0.1);
+    height: 70px;
+    width: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Tabelas modernas */
+.table-modern {
+    border-collapse: separate;
+    border-spacing: 0 0.5rem;
+}
+
+.table-modern thead th {
+    border-bottom: none;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.table-modern tbody tr {
+    box-shadow: var(--shadow-sm);
+    border-radius: 8px;
+    background-color: white;
+}
+
+.table-modern tbody td {
+    padding: 1rem;
+    border-top: none;
+    vertical-align: middle;
+}
+
+.table-modern tbody tr:hover {
+    box-shadow: var(--shadow);
+}
+
+/* Badges mais modernos */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+    border-radius: 6px;
+}
+
+/* Área do usuário */
+.role-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0.35em 0.65em;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.admin-badge {
+    background-color: #805ad5;
+    color: white;
+}
+
+.user-badge {
+    background-color: #38b2ac;
+    color: white;
+}
+
+/* Footer */
+.footer {
+    background-color: white;
+    padding: 1.5rem 0;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 3rem;
+}
+
+/* Tipografia moderna */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: #2d3748;
+    line-height: 1.3;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}

@@ -1,0 +1,193 @@
+/* Layout principal com sidebar */
+body.admin-shell {
+    padding: 0;
+}
+
+.content-area {
+    padding: 2rem;
+    width: 100%;
+}
+
+/* Glass card effect */
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsivo */
+@media (max-width: 1023px) {
+    body.admin-shell {
+        margin-left: 0 !important;
+    }
+    
+    .content-area {
+        padding: 1rem;
+    }
+}
+
+/* Scrollbar customizada */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Action chip - botões de ação */
+.action-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.action-chip:hover {
+    background: #f1f5f9;
+    color: #4f46e5;
+    border-color: #4f46e5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.action-chip.danger:hover {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #dc2626;
+}
+
+.action-chip:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Pagination chip */
+.pagination-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.pagination-chip:hover:not(.disabled):not(.active) {
+    background: #f1f5f9;
+    color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.pagination-chip.active {
+    background: #4f46e5;
+    color: white;
+    border-color: #4f46e5;
+}
+
+.pagination-chip.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive table wrapper */
+.responsive-table-wrapper {
+    overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+    .responsive-table-wrapper table {
+        display: block;
+    }
+    
+    .responsive-table-wrapper thead {
+        display: none;
+    }
+    
+    .responsive-table-wrapper tbody,
+    .responsive-table-wrapper tr,
+    .responsive-table-wrapper td {
+        display: block;
+    }
+    
+    .responsive-table-wrapper tr {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .responsive-table-wrapper td {
+        text-align: right;
+        padding: 0.5rem 0;
+        border: none;
+    }
+    
+    .responsive-table-wrapper td:before {
+        content: attr(data-label);
+        float: left;
+        font-weight: 600;
+        color: #64748b;
+    }
+}
+
+/* Mobile menu */
+.mobile-menu-button {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 50;
+    display: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: white;
+    color: #4f46e5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+}
+
+.mobile-menu-overlay.active {
+    display: block;
+}
+
+@media (max-width: 1023px) {
+    .mobile-menu-button {
+        display: flex;
+    }
+}
