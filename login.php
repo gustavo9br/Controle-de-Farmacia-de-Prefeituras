@@ -188,7 +188,7 @@ $csrf_token = gerarCSRFToken();
                         <img src="images/logo.svg" alt="Logo Farmácia" style="width: 80px; height: 80px;">
                     </div>
                     
-                    <h1 class="login-title">Farmácia de Laje 2</h1>
+                    <h1 class="login-title">Farmácia de Laje</h1>
                     
                     <?php if (!empty($error)): ?>
                         <div class="alert alert-danger" role="alert">
