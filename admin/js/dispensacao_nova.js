@@ -4,9 +4,68 @@ let medicamentosCarrinho = [];
 let searchTimeout = null;
 const API_BASE = (typeof window !== 'undefined' && window.DISPENSACAO_API_BASE) ? window.DISPENSACAO_API_BASE : 'api/';
 
+// ========================================
+// FUNÇÃO DE ALERTA CUSTOMIZADA
+// ========================================
+function mostrarAlerta(mensagem, tipo = 'info', titulo = null) {
+    const modal = document.getElementById('modalAlerta');
+    const iconDiv = document.getElementById('alertaIcon');
+    const tituloEl = document.getElementById('alertaTitulo');
+    const mensagemEl = document.getElementById('alertaMensagem');
+    
+    // Configurar tipo de alerta
+    const tipos = {
+        'info': {
+            bg: 'from-blue-500 to-indigo-500',
+            icon: 'ℹ',
+            titulo: 'Informação'
+        },
+        'erro': {
+            bg: 'from-red-500 to-rose-500',
+            icon: '✕',
+            titulo: 'Erro'
+        },
+        'aviso': {
+            bg: 'from-amber-500 to-orange-500',
+            icon: '⚠',
+            titulo: 'Atenção'
+        },
+        'sucesso': {
+            bg: 'from-green-500 to-emerald-500',
+            icon: '✓',
+            titulo: 'Sucesso'
+        }
+    };
+    
+    const config = tipos[tipo] || tipos['info'];
+    
+    // Atualizar conteúdo
+    iconDiv.className = `w-16 h-16 bg-gradient-to-br ${config.bg} rounded-full flex items-center justify-center mx-auto mb-4`;
+    iconDiv.innerHTML = `<span class="text-white text-3xl">${config.icon}</span>`;
+    tituloEl.textContent = titulo || config.titulo;
+    mensagemEl.textContent = mensagem;
+    
+    // Mostrar modal
+    modal.classList.remove('hidden');
+}
+
+function fecharAlerta() {
+    document.getElementById('modalAlerta').classList.add('hidden');
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Dispensação iniciada');
+    
+    // Configurar fechar modal ao clicar fora
+    const modalAlerta = document.getElementById('modalAlerta');
+    if (modalAlerta) {
+        modalAlerta.addEventListener('click', (e) => {
+            if (e.target === modalAlerta) {
+                fecharAlerta();
+            }
+        });
+    }
     
     document.getElementById('pacienteSearch').addEventListener('input', buscarPacientes);
     document.getElementById('medicamentoSearch').addEventListener('input', buscarMedicamentos);
@@ -110,7 +169,8 @@ function buscarMedicamentos(e) {
     
     clearTimeout(searchTimeout);
     
-    if (query.length < 2) {
+    // Permitir busca com 1 caractere ou mais (para códigos de barras e nomes)
+    if (query.length < 1) {
         results.classList.add('hidden');
         loader.classList.add('hidden');
         return;
@@ -120,20 +180,27 @@ function buscarMedicamentos(e) {
     
     searchTimeout = setTimeout(async () => {
         try {
+            console.log('🔍 Buscando medicamentos:', query);
             const response = await fetch(`${API_BASE}buscar_medicamento.php?q=${encodeURIComponent(query)}`);
             const data = await response.json();
             
+            console.log('📦 Resposta da API:', data);
+            
             loader.classList.add('hidden');
             
-            if (data.success && data.medicamentos.length > 0) {
+            if (data.success && data.medicamentos && data.medicamentos.length > 0) {
+                console.log('✅ Medicamentos encontrados:', data.medicamentos.length);
                 mostrarResultadosMedicamentos(data.medicamentos);
             } else {
+                console.log('⚠️ Nenhum medicamento encontrado');
                 results.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">Nenhum medicamento encontrado</div>';
                 results.classList.remove('hidden');
             }
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('❌ Erro ao buscar medicamentos:', error);
             loader.classList.add('hidden');
+            results.innerHTML = '<div class="p-4 text-center text-red-500 text-sm">Erro ao buscar medicamentos</div>';
+            results.classList.remove('hidden');
         }
     }, 300);
 }
@@ -147,8 +214,11 @@ function mostrarResultadosMedicamentos(medicamentos) {
             class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
         >
             <p class="font-semibold text-gray-800 text-sm">${m.nome}</p>
+            <div class="text-xs text-gray-500 mt-1">
+                ${m.codigos_barras ? `<span class="font-mono">Código: ${m.codigos_barras}</span><br>` : ''}
+            </div>
             <p class="text-sm text-gray-700 mt-1">
-                ${m.fabricante || 'Fabricante não informado'} | Estoque: <span class="font-semibold ${m.estoque_total > 50 ? 'text-green-600' : m.estoque_total > 10 ? 'text-amber-600' : 'text-red-600'}">${m.estoque_total || 0}</span>
+                Estoque: <span class="font-semibold ${m.estoque_total > 50 ? 'text-green-600' : m.estoque_total > 10 ? 'text-amber-600' : 'text-red-600'}">${m.estoque_total || 0}</span>
             </p>
         </div>
     `).join('');
@@ -157,25 +227,51 @@ function mostrarResultadosMedicamentos(medicamentos) {
 }
 
 async function adicionarMedicamento(medicamento) {
-    if (medicamentosCarrinho.find(m => m.id === medicamento.id)) {
-        alert('Este medicamento já foi adicionado!');
-        return;
-    }
+    // Não precisa verificar aqui, pois vamos verificar depois quando tiver o lote selecionado
     
     try {
-        const response = await fetch(`${API_BASE}buscar_lotes.php?medicamento_id=${medicamento.id}`);
+        // Se foi encontrado por código de barras, filtrar lotes apenas desse código
+        let url = `${API_BASE}buscar_lotes.php?medicamento_id=${medicamento.id}`;
+        if (medicamento.codigo_barras_id_match && medicamento.codigo_barras_id_match > 0) {
+            url += `&codigo_barras_id=${medicamento.codigo_barras_id_match}`;
+            console.log('🔍 Buscando lotes filtrados por código de barras:', medicamento.codigo_barras_id_match);
+        } else {
+            console.log('🔍 Buscando todos os lotes do medicamento');
+        }
+        
+        const response = await fetch(url);
         const data = await response.json();
         
         if (!data.success || data.lotes.length === 0) {
-            alert('Nenhum lote disponível para este medicamento!');
+            mostrarAlerta('Nenhum lote disponível para este medicamento!', 'aviso');
             return;
+        }
+        
+        // Se foi encontrado por código de barras, selecionar automaticamente o primeiro lote
+        // Se foi encontrado por nome, deixar o usuário escolher
+        const foiPorCodigoBarras = medicamento.codigo_barras_id_match && medicamento.codigo_barras_id_match > 0;
+        const loteSelecionado = foiPorCodigoBarras ? data.lotes[0] : (data.lotes.length === 1 ? data.lotes[0] : null);
+        
+        // Se já tem lote selecionado, verificar se já existe o mesmo medicamento com o mesmo lote
+        if (loteSelecionado) {
+            const jaExiste = medicamentosCarrinho.find(m => 
+                m.id === medicamento.id && 
+                m.lote_selecionado && 
+                m.lote_selecionado.id === loteSelecionado.id
+            );
+            
+            if (jaExiste) {
+                mostrarAlerta('Este medicamento com este lote já foi adicionado! Você pode adicionar o mesmo medicamento de outro lote.', 'aviso');
+                return;
+            }
         }
         
         const item = {
             ...medicamento,
             lotes: data.lotes,
-            lote_selecionado: data.lotes.length === 1 ? data.lotes[0] : null,
-            quantidade: 1
+            lote_selecionado: loteSelecionado,
+            quantidade: 1,
+            foiPorCodigoBarras: foiPorCodigoBarras // Flag para indicar que foi buscado por código
         };
         
         medicamentosCarrinho.push(item);
@@ -190,7 +286,7 @@ async function adicionarMedicamento(medicamento) {
         
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao buscar lotes do medicamento');
+        mostrarAlerta('Erro ao buscar lotes do medicamento', 'erro');
     }
 }
 
@@ -218,9 +314,9 @@ function renderizarCarrinho() {
             
             <div class="mb-3">
                 <label class="text-xs font-bold text-gray-700 block mb-1.5">📦 Lote:</label>
-                ${item.lotes.length === 1 ? `
+                ${item.lote_selecionado && (item.lotes.length === 1 || item.foiPorCodigoBarras) ? `
                     <div class="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                        <span class="font-semibold">${item.lotes[0].numero_lote}</span> - Val: ${formatarData(item.lotes[0].data_validade)} - Disp: <span class="font-semibold text-green-600">${item.lotes[0].quantidade_atual}</span>
+                        <span class="font-semibold">${item.lote_selecionado.numero_lote}</span> - Val: ${formatarData(item.lote_selecionado.data_validade)} - Disp: <span class="font-semibold text-green-600">${item.lote_selecionado.quantidade_atual}</span>
                     </div>
                 ` : `
                     <select 
@@ -239,10 +335,18 @@ function renderizarCarrinho() {
             
             <div>
                 <label class="text-xs font-bold text-gray-700 block mb-1.5">🔢 Quantidade:</label>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center justify-center gap-2">
+                    <button 
+                        onclick="alterarQuantidade(${index}, -10)" 
+                        class="w-12 h-12 bg-gradient-to-br from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-lg flex items-center justify-center"
+                        style="margin-left: -10px;"
+                        title="Diminuir 10"
+                    >-10</button>
+                    
                     <button 
                         onclick="alterarQuantidade(${index}, -1)" 
                         class="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-2xl flex items-center justify-center"
+                        title="Diminuir 1"
                     >−</button>
                     
                     <input 
@@ -257,11 +361,15 @@ function renderizarCarrinho() {
                     <button 
                         onclick="alterarQuantidade(${index}, 1)" 
                         class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-2xl flex items-center justify-center"
+                        title="Aumentar 1"
                     >+</button>
                     
-                    <span class="text-sm text-gray-600 ml-2">
-                        Max: <span class="font-bold">${item.lote_selecionado ? item.lote_selecionado.quantidade_atual : '-'}</span>
-                    </span>
+                    <button 
+                        onclick="alterarQuantidade(${index}, 10)" 
+                        class="w-12 h-12 bg-gradient-to-br from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-lg flex items-center justify-center"
+                        style="margin-right: 10px;"
+                        title="Aumentar 10"
+                    >+10</button>
                 </div>
             </div>
         </div>
@@ -270,9 +378,33 @@ function renderizarCarrinho() {
 
 function selecionarLote(index, loteId) {
     const item = medicamentosCarrinho[index];
-    item.lote_selecionado = item.lotes.find(l => l.id == loteId);
+    const novoLote = item.lotes.find(l => l.id == loteId);
     
-    if (item.lote_selecionado && item.quantidade > item.lote_selecionado.quantidade_atual) {
+    if (!novoLote) {
+        item.lote_selecionado = null;
+        renderizarCarrinho();
+        return;
+    }
+    
+    // Verificar se já existe o mesmo medicamento com este lote
+    const jaExiste = medicamentosCarrinho.find((m, i) => 
+        i !== index &&
+        m.id === item.id && 
+        m.lote_selecionado && 
+        m.lote_selecionado.id === novoLote.id
+    );
+    
+    if (jaExiste) {
+        mostrarAlerta('Este medicamento com este lote já foi adicionado! Você pode adicionar o mesmo medicamento de outro lote.', 'aviso');
+        // Reverter para o lote anterior ou null
+        renderizarCarrinho();
+        return;
+    }
+    
+    item.lote_selecionado = novoLote;
+    
+    // Ajustar quantidade se necessário
+    if (item.quantidade > item.lote_selecionado.quantidade_atual) {
         item.quantidade = item.lote_selecionado.quantidade_atual;
     }
     
@@ -281,12 +413,23 @@ function selecionarLote(index, loteId) {
 
 function alterarQuantidade(index, delta, valor = null) {
     const item = medicamentosCarrinho[index];
-    const max = item.lote_selecionado ? item.lote_selecionado.quantidade_atual : 999;
+    
+    if (!item.lote_selecionado) {
+        mostrarAlerta('Selecione um lote primeiro!', 'aviso');
+        return;
+    }
+    
+    const max = item.lote_selecionado.quantidade_atual;
     
     if (valor !== null) {
-        item.quantidade = Math.max(1, Math.min(parseInt(valor) || 1, max));
+        // Quando digita manualmente
+        const novoValor = parseInt(valor) || 1;
+        item.quantidade = Math.max(1, Math.min(novoValor, max));
     } else {
-        item.quantidade = Math.max(1, Math.min(item.quantidade + delta, max));
+        // Quando clica nos botões
+        // delta pode ser: -10, -1, 1, ou 10
+        const novaQuantidade = item.quantidade + delta;
+        item.quantidade = Math.max(1, Math.min(novaQuantidade, max));
     }
     
     renderizarCarrinho();
@@ -306,18 +449,18 @@ async function finalizarDispensacao() {
     console.log('Medicamentos:', medicamentosCarrinho);
     
     if (!pacienteSelecionado) {
-        alert('Selecione um paciente!');
+        mostrarAlerta('Selecione um paciente!', 'aviso');
         return;
     }
     
     if (medicamentosCarrinho.length === 0) {
-        alert('Adicione pelo menos um medicamento!');
+        mostrarAlerta('Adicione pelo menos um medicamento!', 'aviso');
         return;
     }
     
     for (let item of medicamentosCarrinho) {
         if (!item.lote_selecionado) {
-            alert(`Selecione um lote para ${item.nome}!`);
+            mostrarAlerta(`Selecione um lote para ${item.nome}!`, 'aviso');
             return;
         }
     }
@@ -351,12 +494,12 @@ async function finalizarDispensacao() {
             limparTudo();
             carregarLog();
         } else {
-            alert(result.message || 'Erro ao processar dispensação');
+            mostrarAlerta(result.message || 'Erro ao processar dispensação', 'erro');
         }
         
     } catch (error) {
         console.error('❌ Erro:', error);
-        alert('Erro ao processar dispensação: ' + error.message);
+        mostrarAlerta('Erro ao processar dispensação: ' + error.message, 'erro');
     }
 }
 

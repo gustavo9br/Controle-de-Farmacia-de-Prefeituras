@@ -118,7 +118,7 @@ $pageTitle = "Dispensação de Medicamentos";
                     <input 
                         type="text" 
                         id="medicamentoSearch" 
-                        placeholder="🔍 Código ou nome do medicamento..." 
+                        placeholder="🔍 Digite o código de barras ou nome do medicamento..." 
                         class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                         autocomplete="off"
                     >
@@ -149,6 +149,25 @@ $pageTitle = "Dispensação de Medicamentos";
             </div>
         </div>
     </main>
+
+    <!-- Modal de Alerta Customizado -->
+    <div id="modalAlerta" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+            <div class="text-center">
+                <div id="alertaIcon" class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-white text-3xl">ℹ</span>
+                </div>
+                <h3 id="alertaTitulo" class="text-2xl font-bold text-gray-800 mb-2">Atenção</h3>
+                <p id="alertaMensagem" class="text-gray-600 mb-6"></p>
+                <button 
+                    onclick="fecharAlerta()" 
+                    class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold rounded-lg transition-all"
+                >
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal de Sucesso -->
     <div id="modalSucesso" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">

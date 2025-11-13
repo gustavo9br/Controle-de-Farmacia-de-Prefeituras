@@ -123,8 +123,9 @@ function buscarMedicamentos(e) {
                         <div class="p-3 hover:bg-blue-50 cursor-pointer transition-colors"
                              onclick='selecionarMedicamento(${JSON.stringify(m).replace(/'/g, "&#39;")})'>
                             <div class="font-medium text-gray-900">${m.nome}</div>
-                            <div class="text-sm text-gray-600">
-                                <span class="inline-block bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">
+                            <div class="text-sm text-gray-600 mt-1">
+                                ${m.codigos_barras ? `<span class="text-xs text-gray-500 font-mono">Código: ${m.codigos_barras}</span><br>` : ''}
+                                <span class="inline-block bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs mt-1">
                                     Estoque: ${m.estoque_atual || 0}
                                 </span>
                             </div>

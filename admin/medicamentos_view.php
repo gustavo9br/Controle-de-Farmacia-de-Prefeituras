@@ -45,12 +45,10 @@ function validadeBadgeClass(?int $dias): string
 
 try {
     $sql = "SELECT m.*, 
-                  f.nome AS fabricante_nome, 
                   c.nome AS categoria_nome,
                   u.nome AS unidade_nome,
                   u.sigla AS unidade_sigla
            FROM medicamentos m
-           LEFT JOIN fabricantes f ON m.fabricante_id = f.id
            LEFT JOIN categorias c ON m.categoria_id = c.id
            LEFT JOIN apresentacoes u ON m.apresentacao_id = u.id
            WHERE m.id = ?";
@@ -67,8 +65,10 @@ try {
     }
     
     $sql = "SELECT l.*,
+                  cb.codigo as codigo_barras,
                   DATEDIFF(l.data_validade, CURDATE()) AS dias_para_vencer
            FROM lotes l
+           LEFT JOIN codigos_barras cb ON l.codigo_barras_id = cb.id
            WHERE l.medicamento_id = ?
            ORDER BY l.data_validade ASC";
     
@@ -85,6 +85,7 @@ try {
 
 $successMessage = getSuccessMessage();
 $errorMessage = getErrorMessage();
+$csrfToken = gerarCSRFToken();
 $estoqueAtual = (int)($medicamento['estoque_atual'] ?? 0);
 $estoqueMinimo = (int)($medicamento['estoque_minimo'] ?? 0);
 
@@ -168,20 +169,22 @@ $pageTitle = 'Detalhes do Medicamento';
                     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                         <div class="space-y-2">
                             <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($medicamento['nome']); ?></h1>
-                            <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                                <?php if (!empty($medicamento['codigo_barras'])): ?>
-                                    <div class="flex items-center gap-1.5">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                        <span><?php echo htmlspecialchars($medicamento['codigo_barras']); ?></span>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (!empty($medicamento['fabricante_nome'])): ?>
-                                    <div class="flex items-center gap-1.5">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                                        <span><?php echo htmlspecialchars($medicamento['fabricante_nome']); ?></span>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+                            <?php
+                            // Buscar códigos de barras do medicamento
+                            $stmt = $conn->prepare("SELECT codigo FROM codigos_barras WHERE medicamento_id = ? ORDER BY codigo ASC LIMIT 3");
+                            $stmt->execute([$id]);
+                            $codigos_barras_med = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                            ?>
+                            <?php if (!empty($codigos_barras_med)): ?>
+                                <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                                    <?php foreach ($codigos_barras_med as $cb): ?>
+                                        <div class="flex items-center gap-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                            <span class="font-mono text-xs"><?php echo htmlspecialchars($cb); ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         
                         <div class="flex flex-wrap gap-2.5">
@@ -189,9 +192,13 @@ $pageTitle = 'Detalhes do Medicamento';
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 Editar
                             </a>
-                            <a href="lote_form.php?med_id=<?php echo $id; ?>" class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
+                            <button onclick="document.getElementById('codigosBarrasModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                                Gerenciar Códigos de Barras
+                            </button>
+                            <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                                Adicionar Lote
+                                Gerenciar Lotes
                             </a>
                         </div>
                     </div>
@@ -309,10 +316,6 @@ $pageTitle = 'Detalhes do Medicamento';
                                 ?>
                             </span>
                         </div>
-                        <div class="flex justify-between py-3">
-                            <span class="text-sm font-medium text-slate-500">Fabricante</span>
-                            <span class="text-sm text-slate-900"><?php echo !empty($medicamento['fabricante_nome']) ? htmlspecialchars($medicamento['fabricante_nome']) : 'Não informado'; ?></span>
-                        </div>
                     </div>
                 </div>
 
@@ -335,9 +338,9 @@ $pageTitle = 'Detalhes do Medicamento';
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         Lotes Disponíveis
                     </h2>
-                    <a href="lote_form.php?med_id=<?php echo $id; ?>" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-sm text-white font-semibold shadow hover:bg-primary-500 transition">
+                    <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-sm text-white font-semibold shadow hover:bg-primary-500 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                        Adicionar Lote
+                        Gerenciar Lotes
                     </a>
                 </div>
                 
@@ -346,6 +349,7 @@ $pageTitle = 'Detalhes do Medicamento';
                         <table class="min-w-full divide-y divide-slate-100 text-left">
                             <thead class="bg-white/60">
                                 <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    <th class="px-4 sm:px-6 py-3">Código de Barras</th>
                                     <th class="px-4 sm:px-6 py-3">Número do Lote</th>
                                     <th class="px-4 sm:px-6 py-3">Recebimento</th>
                                     <th class="px-4 sm:px-6 py-3">Validade</th>
@@ -358,6 +362,9 @@ $pageTitle = 'Detalhes do Medicamento';
                             <tbody class="divide-y divide-slate-100 bg-white/80">
                                 <?php foreach ($lotes as $lote): ?>
                                     <tr class="text-sm text-slate-600">
+                                        <td data-label="Código de Barras" class="px-4 sm:px-6 py-3 sm:py-4">
+                                            <span class="font-mono text-xs text-slate-500"><?php echo !empty($lote['codigo_barras']) ? htmlspecialchars($lote['codigo_barras']) : '—'; ?></span>
+                                        </td>
                                         <td data-label="Número" class="px-4 sm:px-6 py-3 sm:py-4 font-medium text-slate-900">
                                             <?php echo htmlspecialchars($lote['numero_lote']); ?>
                                         </td>
@@ -387,7 +394,7 @@ $pageTitle = 'Detalhes do Medicamento';
                                         </td>
                                         <td data-label="Ações" class="px-4 sm:px-6 py-3 sm:py-4">
                                             <div class="flex items-center justify-end gap-2">
-                                                <a href="lote_form.php?med_id=<?php echo $id; ?>&id=<?php echo (int)$lote['id']; ?>" class="action-chip" title="Editar lote">
+                                                <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>&edit=<?php echo (int)$lote['id']; ?>" class="action-chip" title="Editar lote">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                                 </a>
                                             </div>
@@ -401,9 +408,9 @@ $pageTitle = 'Detalhes do Medicamento';
                     <div class="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center text-slate-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         <p class="text-sm">Não há lotes cadastrados para este medicamento.</p>
-                        <a href="lote_form.php?med_id=<?php echo $id; ?>" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2 text-white text-sm font-semibold shadow hover:bg-primary-500 transition">
+                        <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2 text-white text-sm font-semibold shadow hover:bg-primary-500 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                            Cadastrar primeiro lote
+                            Gerenciar Lotes
                         </a>
                     </div>
                 <?php endif; ?>
@@ -419,7 +426,242 @@ $pageTitle = 'Detalhes do Medicamento';
         </main>
     </div>
 
+    <!-- Modal Gerenciar Códigos de Barras -->
+    <div id="codigosBarrasModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-card w-full max-w-3xl my-8">
+            <div class="flex items-center justify-between px-8 py-6 border-b border-white/60">
+                <h3 class="text-2xl font-bold text-slate-900">Gerenciar Códigos de Barras</h3>
+                <button onclick="document.getElementById('codigosBarrasModal').classList.add('hidden')" type="button" class="rounded-full p-2 hover:bg-slate-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-8 space-y-6">
+                <!-- Formulário para adicionar novo código -->
+                <div class="bg-slate-50 rounded-2xl p-6 space-y-4">
+                    <h4 class="text-lg font-semibold text-slate-900">Adicionar Novo Código de Barras</h4>
+                    <form id="formAddCodigo" class="flex gap-3">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="medicamento_id" value="<?php echo $id; ?>">
+                        <input type="text" name="codigo" id="novoCodigo" placeholder="Digite ou escaneie o código de barras" class="flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500" required autofocus>
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
+                            Adicionar
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Lista de códigos existentes -->
+                <div>
+                    <h4 class="text-lg font-semibold text-slate-900 mb-4">Códigos Cadastrados</h4>
+                    <div id="codigosList" class="space-y-2">
+                        <div class="text-center text-slate-400 py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+                            <p class="mt-2 text-sm">Carregando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/sidebar.js" defer></script>
+    <script>
+        const medicamentoId = <?php echo $id; ?>;
+        const csrfToken = '<?php echo htmlspecialchars($csrfToken); ?>';
+        let codigosEditando = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('codigosBarrasModal');
+            const formAdd = document.getElementById('formAddCodigo');
+            
+            // Carregar códigos quando o modal abrir
+            if (modal) {
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            if (!modal.classList.contains('hidden')) {
+                                carregarCodigos();
+                            }
+                        }
+                    });
+                });
+                observer.observe(modal, { attributes: true });
+            }
+            
+            // Adicionar novo código
+            if (formAdd) {
+                formAdd.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await adicionarCodigo();
+                });
+            }
+        });
+
+        async function carregarCodigos() {
+            const lista = document.getElementById('codigosList');
+            
+            try {
+                const response = await fetch(`api/listar_codigos_barras.php?medicamento_id=${medicamentoId}`);
+                const data = await response.json();
+                
+                if (data.success && data.codigos && data.codigos.length > 0) {
+                    lista.innerHTML = data.codigos.map(cb => {
+                        const isEditando = codigosEditando[cb.id];
+                        return `
+                            <div class="glass-card p-4 flex items-center justify-between" data-id="${cb.id}">
+                                ${isEditando ? `
+                                    <input type="text" id="edit_codigo_${cb.id}" value="${cb.codigo}" class="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                                ` : `
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-mono text-sm text-slate-900">${cb.codigo}</span>
+                                        <span class="text-xs text-slate-400">Cadastrado em ${new Date(cb.criado_em).toLocaleDateString('pt-BR')}</span>
+                                    </div>
+                                `}
+                                <div class="flex items-center gap-2">
+                                    ${isEditando ? `
+                                        <button onclick="salvarCodigo(${cb.id})" class="action-chip" title="Salvar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        </button>
+                                        <button onclick="cancelarEdicao(${cb.id})" class="action-chip" title="Cancelar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    ` : `
+                                        <button onclick="editarCodigo(${cb.id})" class="action-chip" title="Editar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        </button>
+                                        <button onclick="deletarCodigo(${cb.id}, '${cb.codigo.replace(/'/g, "\\'")}')" class="action-chip danger" title="Excluir">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    lista.innerHTML = `
+                        <div class="text-center text-slate-400 py-8">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                            <p class="text-sm">Nenhum código de barras cadastrado</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar códigos:', error);
+                lista.innerHTML = `
+                    <div class="text-center text-red-500 py-8">
+                        <p class="text-sm">Erro ao carregar códigos de barras</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function adicionarCodigo() {
+            const codigo = document.getElementById('novoCodigo').value.trim();
+            
+            if (!codigo) {
+                alert('Digite um código de barras');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', 'add');
+                formData.append('csrf_token', csrfToken);
+                formData.append('medicamento_id', medicamentoId);
+                formData.append('codigo', codigo);
+                
+                const response = await fetch('api/gerenciar_codigo_barras.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('novoCodigo').value = '';
+                    carregarCodigos();
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro ao adicionar código:', error);
+                alert('Erro ao adicionar código de barras');
+            }
+        }
+
+        function editarCodigo(id) {
+            codigosEditando[id] = true;
+            carregarCodigos();
+        }
+
+        function cancelarEdicao(id) {
+            delete codigosEditando[id];
+            carregarCodigos();
+        }
+
+        async function salvarCodigo(id) {
+            const codigo = document.getElementById(`edit_codigo_${id}`).value.trim();
+            
+            if (!codigo) {
+                alert('Digite um código de barras');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', 'edit');
+                formData.append('csrf_token', csrfToken);
+                formData.append('id', id);
+                formData.append('codigo', codigo);
+                
+                const response = await fetch('api/gerenciar_codigo_barras.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    delete codigosEditando[id];
+                    carregarCodigos();
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro ao salvar código:', error);
+                alert('Erro ao salvar código de barras');
+            }
+        }
+
+        async function deletarCodigo(id, codigo) {
+            if (!confirm(`Confirma a exclusão do código de barras "${codigo}"?`)) {
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', 'delete');
+                formData.append('csrf_token', csrfToken);
+                formData.append('id', id);
+                
+                const response = await fetch('api/gerenciar_codigo_barras.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    carregarCodigos();
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro ao deletar código:', error);
+                alert('Erro ao deletar código de barras');
+            }
+        }
+    </script>
 </body>
 </html>
 

@@ -123,7 +123,7 @@ if (isset($_GET['id'])) {
                                 <span class="text-red-500">*</span> Medicamento
                             </label>
                             <div class="relative">
-                                <input type="text" id="medicamentoSearch" placeholder="🔍 Digite o código ou nome do medicamento..." class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" autocomplete="off" disabled>
+                                <input type="text" id="medicamentoSearch" placeholder="🔍 Digite o código de barras ou nome do medicamento..." class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" autocomplete="off" disabled>
                                 <input type="hidden" id="medicamento_id">
                                 <div id="medicamentoResults" class="hidden absolute z-50 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 max-h-48 overflow-y-auto"></div>
                             </div>

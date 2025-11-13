@@ -265,7 +265,7 @@ $pageTitle = 'Central da Farmácia Popular';
                             <h3 class="text-lg sm:text-xl font-semibold text-slate-900">Saídas recentes</h3>
                             <p class="text-xs sm:text-sm text-slate-500 mt-1">Últimas dispensações registradas no sistema.</p>
                         </div>
-                        <a href="../admin_old/saidas.php" class="text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-500 self-start sm:self-auto">Ver histórico →</a>
+                        <a href="relatorios.php?tipo=movimentacao" class="text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-500 self-start sm:self-auto">Ver histórico →</a>
                     </div>
                     <?php if (!empty($recentSaidas)): ?>
                         <div class="space-y-3 sm:space-y-4">
@@ -322,7 +322,7 @@ $pageTitle = 'Central da Farmácia Popular';
                             <h3 class="text-xl font-semibold text-slate-900">Validades próximas</h3>
                             <p class="text-sm text-slate-500">Lotes com vencimento em até 90 dias.</p>
                         </div>
-                        <a href="../admin_old/medicamentos_vencimento.php" class="text-sm font-medium text-primary-600 hover:text-primary-500">Ver todos</a>
+                        <a href="relatorios.php?tipo=vencimento" class="text-sm font-medium text-primary-600 hover:text-primary-500">Ver todos</a>
                     </div>
                     <div class="space-y-4">
                         <?php if (!empty($validadeProxima)): ?>

@@ -198,13 +198,16 @@ $pageTitle = 'Receitas Médicas';
                     <div class="lg:col-span-8">
                         <label for="search" class="text-sm font-medium text-slate-600">Buscar por paciente ou número da receita</label>
                         <div class="relative mt-2">
-                            <input type="text" name="search" id="search" value="<?php echo htmlspecialchars($search); ?>" class="w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 pl-11 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite nome, CPF ou número da receita..." autocomplete="off">
+                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 pl-11 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite nome, CPF ou número da receita..." autocomplete="off">
                             <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
+                            <div id="searchLoader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="lg:col-span-4">
                         <label for="status" class="text-sm font-medium text-slate-600">Status</label>
-                        <select name="status" id="status" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
+                        <select id="status" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
                             <option value="">Todos</option>
                             <option value="ativa" <?php echo $status === 'ativa' ? 'selected' : ''; ?>>Ativa</option>
                             <option value="finalizada" <?php echo $status === 'finalizada' ? 'selected' : ''; ?>>Finalizada</option>
@@ -215,7 +218,7 @@ $pageTitle = 'Receitas Médicas';
                 </div>
             </section>
 
-            <section class="space-y-4">
+            <section class="space-y-4" id="receitasContainer">
                 <?php if (count($receitas) > 0): ?>
                     <?php foreach ($receitas as $receita): ?>
                         <div class="glass-card p-6 hover:shadow-glow transition cursor-pointer" onclick="window.location.href='receitas_dispensar.php?id=<?php echo $receita['id']; ?>'">
@@ -297,29 +300,141 @@ $pageTitle = 'Receitas Médicas';
     <script>
         let searchTimeout = null;
         
-        // Busca instantânea ao digitar
-        document.getElementById('search').addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                aplicarFiltros();
-            }, 500);
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search');
+            const statusSelect = document.getElementById('status');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        buscarReceitas();
+                    }, 300);
+                });
+            }
+            
+            if (statusSelect) {
+                statusSelect.addEventListener('change', function() {
+                    buscarReceitas();
+                });
+            }
         });
         
-        // Busca ao mudar status
-        document.getElementById('status').addEventListener('change', function() {
-            aplicarFiltros();
-        });
-        
-        function aplicarFiltros() {
-            const search = document.getElementById('search').value;
+        async function buscarReceitas() {
+            const query = document.getElementById('search').value.trim();
             const status = document.getElementById('status').value;
+            const container = document.getElementById('receitasContainer');
+            const loader = document.getElementById('searchLoader');
             
-            const params = new URLSearchParams();
-            if (search) params.append('search', search);
-            if (status) params.append('status', status);
+            if (loader) loader.classList.remove('hidden');
             
-            const url = 'receitas.php' + (params.toString() ? '?' + params.toString() : '');
-            window.location.href = url;
+            try {
+                const params = new URLSearchParams();
+                if (query) params.append('q', query);
+                if (status) params.append('status', status);
+                
+                const response = await fetch(`api/buscar_receita.php?${params.toString()}`);
+                const data = await response.json();
+                
+                if (loader) loader.classList.add('hidden');
+                
+                if (data.success && data.receitas && data.receitas.length > 0) {
+                    renderizarReceitas(data.receitas);
+                } else {
+                    container.innerHTML = `
+                        <div class="glass-card flex flex-col items-center justify-center gap-3 px-6 py-14 text-center text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+                            <p class="text-sm">Nenhuma receita encontrada.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao buscar receitas:', error);
+                if (loader) loader.classList.add('hidden');
+            }
+        }
+        
+        function renderizarReceitas(receitas) {
+            const container = document.getElementById('receitasContainer');
+            
+            const statusBadgeClass = (status) => {
+                switch (status) {
+                    case 'ativa': return 'bg-emerald-100 text-emerald-600';
+                    case 'finalizada': return 'bg-blue-100 text-blue-600';
+                    case 'vencida': return 'bg-rose-100 text-rose-600';
+                    case 'cancelada': return 'bg-slate-100 text-slate-600';
+                    default: return 'bg-slate-100 text-slate-600';
+                }
+            };
+            
+            const statusLabel = (status) => {
+                switch (status) {
+                    case 'ativa': return 'Ativa';
+                    case 'finalizada': return 'Finalizada';
+                    case 'vencida': return 'Vencida';
+                    case 'cancelada': return 'Cancelada';
+                    default: return status;
+                }
+            };
+            
+            const formatarData = (data) => {
+                if (!data) return '-';
+                const d = new Date(data + 'T00:00:00');
+                return d.toLocaleDateString('pt-BR');
+            };
+            
+            container.innerHTML = receitas.map(receita => `
+                <div class="glass-card p-6 hover:shadow-glow transition cursor-pointer" onclick="window.location.href='receitas_dispensar.php?id=${receita.id}'">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-lg font-semibold text-slate-900">Receita #${receita.numero_receita || receita.id}</h3>
+                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(receita.status)}">
+                                    ${statusLabel(receita.status)}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
+                                <div>
+                                    <span class="text-slate-500">Paciente:</span>
+                                    <span class="ml-2 font-medium text-slate-700">${receita.paciente_nome}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Emissão:</span>
+                                    <span class="ml-2 font-medium text-slate-700">${formatarData(receita.data_emissao)}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Validade:</span>
+                                    <span class="ml-2 font-medium text-slate-700">${formatarData(receita.data_validade)}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-4 mt-4 text-sm">
+                                <span class="inline-flex items-center gap-1 text-slate-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    ${receita.total_itens} medicamento(s)
+                                </span>
+                                ${receita.itens_pendentes > 0 ? `
+                                    <span class="inline-flex items-center gap-1 text-amber-600 font-medium">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        ${receita.itens_pendentes} item(ns) pendente(s)
+                                    </span>
+                                ` : ''}
+                            </div>
+                            
+                            ${receita.observacoes ? `
+                                <p class="text-sm text-slate-500 mt-3 italic">${receita.observacoes}</p>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="flex flex-col gap-2 ml-4">
+                            <a href="paciente_historico.php?id=${receita.paciente_id}" class="action-chip" title="Ver histórico do paciente" onclick="event.stopPropagation();">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
     </script>
 </body>

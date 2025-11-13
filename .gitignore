@@ -1,8 +1,11 @@
- /uploads/
- /storage/
- /vendor/
+/uploads/
+/storage/
+/vendor/
 +/config/database.php
- .env
- .env.*
- npm-debug.log*
- yarn-debug.log*
+.env
+.env.*
+npm-debug.log*
+yarn-debug.log*
+
+# Pasta de documentação com informações sensíveis do banco de dados
+docs/

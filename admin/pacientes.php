@@ -237,56 +237,35 @@ $pageTitle = 'Pacientes cadastrados';
             <?php endif; ?>
 
             <section class="glass-card p-6 space-y-6">
-                <form method="get" class="grid gap-5 lg:grid-cols-12">
+                <div class="grid gap-5 lg:grid-cols-12">
                     <div class="lg:col-span-6">
                         <label for="search" class="text-sm font-medium text-slate-600">Buscar por nome, CPF ou cartão SUS</label>
                         <div class="relative mt-2">
-                            <input type="text" name="search" id="search" value="<?php echo htmlspecialchars($search); ?>" class="w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 pl-11 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Ex.: João Silva" autocomplete="off">
+                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 pl-11 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite o nome, CPF ou cartão SUS..." autocomplete="off">
                             <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
+                            <div id="searchLoader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="lg:col-span-2">
+                    <div class="lg:col-span-3">
                         <label for="sexo" class="text-sm font-medium text-slate-600">Sexo</label>
-                        <select name="sexo" id="sexo" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
+                        <select id="sexo" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
                             <option value="">Todos</option>
                             <option value="M" <?php echo $filter_sexo === 'M' ? 'selected' : ''; ?>>Masculino</option>
                             <option value="F" <?php echo $filter_sexo === 'F' ? 'selected' : ''; ?>>Feminino</option>
                             <option value="Outro" <?php echo $filter_sexo === 'Outro' ? 'selected' : ''; ?>>Outro</option>
                         </select>
                     </div>
-                    <div class="lg:col-span-2">
-                        <label for="sort" class="text-sm font-medium text-slate-600">Ordenar por</label>
-                        <select name="sort" id="sort" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
-                            <option value="nome" <?php echo $sort === 'nome' ? 'selected' : ''; ?>>Nome</option>
-                            <option value="data_nascimento" <?php echo $sort === 'data_nascimento' ? 'selected' : ''; ?>>Data de nascimento</option>
-                            <option value="cpf" <?php echo $sort === 'cpf' ? 'selected' : ''; ?>>CPF</option>
-                        </select>
-                    </div>
-                    <div class="lg:col-span-2">
-                        <label for="order" class="text-sm font-medium text-slate-600">Ordem</label>
-                        <select name="order" id="order" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
-                            <option value="ASC" <?php echo $order === 'ASC' ? 'selected' : ''; ?>>Crescente</option>
-                            <option value="DESC" <?php echo $order === 'DESC' ? 'selected' : ''; ?>>Decrescente</option>
-                        </select>
-                    </div>
-                    <div class="lg:col-span-12 flex flex-wrap gap-3">
-                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
-                            Aplicar filtros
-                        </button>
-                        <a href="pacientes.php" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-slate-500 font-semibold shadow hover:shadow-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 4.5l15 15M19.5 4.5l-15 15"/></svg>
-                            Limpar
-                        </a>
-                    </div>
-                </form>
+                </div>
             </section>
 
             <section class="glass-card p-0 overflow-hidden">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
                     <h2 class="text-lg font-semibold text-slate-900">Lista de pacientes</h2>
-                    <span class="rounded-full bg-primary-50 px-4 py-1 text-sm font-medium text-primary-600">Página <?php echo $totalRecords > 0 ? $page : 0; ?> de <?php echo $totalRecords > 0 ? $totalPages : 0; ?></span>
+                    <span id="totalInfo" class="rounded-full bg-primary-50 px-4 py-1 text-sm font-medium text-primary-600"><?php echo number_format($totalRecords, 0, ',', '.'); ?> pacientes</span>
                 </div>
+                <div id="pacientesContainer">
                 <?php if (count($pacientes) > 0): ?>
                     <!-- Desktop table -->
                     <div class="hidden lg:block overflow-x-auto">
@@ -451,10 +430,155 @@ $pageTitle = 'Pacientes cadastrados';
                         <a href="pacientes_form.php" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2 text-white text-sm font-semibold shadow hover:bg-primary-500 transition">Cadastrar o primeiro paciente</a>
                     </div>
                 <?php endif; ?>
+                </div>
             </section>
         </main>
     </div>
 
     <script src="js/sidebar.js" defer></script>
+    <script>
+        let searchTimeout = null;
+        let pacientesData = <?php echo json_encode($pacientes); ?>;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search');
+            const sexoSelect = document.getElementById('sexo');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        buscarPacientes();
+                    }, 300);
+                });
+            }
+            
+            if (sexoSelect) {
+                sexoSelect.addEventListener('change', function() {
+                    buscarPacientes();
+                });
+            }
+        });
+        
+        async function buscarPacientes() {
+            const query = document.getElementById('search').value.trim();
+            const sexo = document.getElementById('sexo').value;
+            const loader = document.getElementById('searchLoader');
+            const container = document.getElementById('pacientesContainer');
+            const totalInfo = document.getElementById('totalInfo');
+            
+            if (loader) loader.classList.remove('hidden');
+            
+            try {
+                const params = new URLSearchParams();
+                if (query) params.append('q', query);
+                if (sexo) params.append('sexo', sexo);
+                
+                const response = await fetch(`api/buscar_paciente_lista.php?${params.toString()}`);
+                const data = await response.json();
+                
+                if (loader) loader.classList.add('hidden');
+                
+                if (data.success && data.pacientes && data.pacientes.length > 0) {
+                    pacientesData = data.pacientes;
+                    renderizarPacientes(data.pacientes);
+                    if (totalInfo) totalInfo.textContent = `${data.pacientes.length} paciente(s) encontrado(s)`;
+                } else {
+                    container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0z"/></svg>
+                            <p class="text-sm">Nenhum paciente encontrado.</p>
+                        </div>
+                    `;
+                    if (totalInfo) totalInfo.textContent = '0 pacientes';
+                }
+            } catch (error) {
+                console.error('Erro ao buscar pacientes:', error);
+                if (loader) loader.classList.add('hidden');
+            }
+        }
+        
+        function renderizarPacientes(pacientes) {
+            const container = document.getElementById('pacientesContainer');
+            
+            const sexoBadgeClass = (sexo) => {
+                switch (sexo) {
+                    case 'M': return 'bg-blue-100 text-blue-600';
+                    case 'F': return 'bg-pink-100 text-pink-600';
+                    default: return 'bg-slate-100 text-slate-600';
+                }
+            };
+            
+            const sexoLabel = (sexo) => {
+                switch (sexo) {
+                    case 'M': return 'Masculino';
+                    case 'F': return 'Feminino';
+                    case 'Outro': return 'Outro';
+                    default: return 'Não informado';
+                }
+            };
+            
+            const formatarData = (data) => {
+                if (!data) return '-';
+                const d = new Date(data + 'T00:00:00');
+                return d.toLocaleDateString('pt-BR');
+            };
+            
+            container.innerHTML = `
+                <div class="hidden lg:block overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-left">
+                        <thead class="bg-white/60">
+                            <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <th class="px-6 py-3">Nome</th>
+                                <th class="px-6 py-3">Data de Nascimento</th>
+                                <th class="px-6 py-3">Idade</th>
+                                <th class="px-6 py-3">CPF</th>
+                                <th class="px-6 py-3">Cartão SUS</th>
+                                <th class="px-6 py-3">Sexo</th>
+                                <th class="px-6 py-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white/80">
+                            ${pacientes.map(paciente => {
+                                return `
+                                    <tr class="text-sm text-slate-600">
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-col">
+                                                <span class="font-semibold text-slate-900">${paciente.nome}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="text-sm text-slate-600">${formatarData(paciente.data_nascimento)}</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="text-sm text-slate-600">${paciente.idade || 0} anos</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="text-sm font-mono text-slate-600">${paciente.cpf || '—'}</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="text-sm font-mono text-slate-600">${paciente.cartao_sus || '—'}</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${sexoBadgeClass(paciente.sexo)}">
+                                                ${sexoLabel(paciente.sexo)}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <a href="pacientes_form.php?id=${paciente.id}" class="action-chip" title="Editar paciente">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+    </script>
 </body>
 </html>

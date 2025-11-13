@@ -7,21 +7,19 @@ header('Content-Type: application/json');
 $conn = getConnection();
 $query = isset($_GET['q']) ? trim($_GET['q']) : '';
 
-if (empty($query)) {
+if (empty($query) || strlen($query) < 1) {
     echo json_encode(['success' => false, 'message' => 'Query vazia', 'debug' => 'Nenhuma query fornecida']);
     exit;
 }
 
 try {
-    // Buscar medicamentos por código de barras ou nome
+    // Buscar medicamentos por código de barras (na tabela codigos_barras) ou nome
     // Trazer também o lote com validade mais próxima e quantidade disponível
-    $sql = "SELECT 
+    $sql = "SELECT DISTINCT
                 m.id,
                 m.nome,
                 m.descricao as apresentacao,
-                m.codigo_barras,
                 m.estoque_atual,
-                f.nome as fabricante,
                 COALESCE(
                     (SELECT SUM(l.quantidade_atual) 
                      FROM lotes l 
@@ -36,28 +34,63 @@ try {
                  AND l.quantidade_atual > 0 
                  AND l.data_validade >= CURDATE()
                  ORDER BY l.data_validade ASC 
-                 LIMIT 1) as lote_id
+                 LIMIT 1) as lote_id,
+                (SELECT GROUP_CONCAT(cb.codigo SEPARATOR ', ') 
+                 FROM codigos_barras cb 
+                 WHERE cb.medicamento_id = m.id 
+                 LIMIT 3) as codigos_barras,
+                (SELECT cb.id 
+                 FROM codigos_barras cb 
+                 WHERE cb.medicamento_id = m.id 
+                 AND cb.codigo LIKE :query_like 
+                 LIMIT 1) as codigo_barras_id_match
             FROM medicamentos m
-            LEFT JOIN fabricantes f ON m.fabricante_id = f.id
             WHERE m.ativo = 1
             AND (
-                m.codigo_barras LIKE :query
+                EXISTS (
+                    SELECT 1 
+                    FROM codigos_barras cb 
+                    WHERE cb.medicamento_id = m.id 
+                    AND cb.codigo LIKE :query_like
+                )
                 OR m.nome LIKE :query_like
+                OR m.descricao LIKE :query_like
             )
             ORDER BY 
                 CASE 
-                    WHEN m.codigo_barras = :query_exact THEN 1
-                    WHEN m.codigo_barras LIKE :query THEN 2
-                    ELSE 3
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM codigos_barras cb 
+                        WHERE cb.medicamento_id = m.id 
+                        AND cb.codigo = :query_exact
+                    ) THEN 1
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM codigos_barras cb 
+                        WHERE cb.medicamento_id = m.id 
+                        AND cb.codigo LIKE :query_start
+                    ) THEN 2
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM codigos_barras cb 
+                        WHERE cb.medicamento_id = m.id 
+                        AND cb.codigo LIKE :query_like
+                    ) THEN 3
+                    WHEN m.nome LIKE :query_start THEN 4
+                    ELSE 5
                 END,
                 m.nome ASC
             LIMIT 10";
     
+    $query_like = '%' . $query . '%';
+    $query_start = $query . '%';
+    $query_exact = $query;
+    
     $stmt = $conn->prepare($sql);
     $stmt->execute([
-        ':query' => $query,
-        ':query_like' => '%' . $query . '%',
-        ':query_exact' => $query
+        ':query_like' => $query_like,
+        ':query_start' => $query_start,
+        ':query_exact' => $query_exact
     ]);
     
     $medicamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);

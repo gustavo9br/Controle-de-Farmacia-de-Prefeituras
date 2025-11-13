@@ -4,7 +4,8 @@ requireAdmin();
 
 $conn = getConnection();
 
-$med_id = isset($_GET['med_id']) ? (int)$_GET['med_id'] : 0;
+// Aceitar med_id via GET ou POST (quando vem do formulário de lotes.php)
+$med_id = isset($_GET['med_id']) ? (int)$_GET['med_id'] : (isset($_POST['med_id']) ? (int)$_POST['med_id'] : 0);
 $edit_id = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
 
 if ($med_id <= 0) {
@@ -29,16 +30,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             switch ($action) {
                 case 'add_lote':
+                    $codigo_barras = trim($_POST['codigo_barras'] ?? '');
                     $numero_lote = trim($_POST['numero_lote'] ?? '');
                     $data_recebimento = trim($_POST['data_recebimento'] ?? '');
                     $data_validade = trim($_POST['data_validade'] ?? '');
-                    $quantidade_caixas = (int)($_POST['quantidade_caixas'] ?? 0);
-                    $quantidade_por_caixa = (int)($_POST['quantidade_por_caixa'] ?? 0);
                     $quantidade_total = (int)($_POST['quantidade_total'] ?? 0);
                     $fornecedor = trim($_POST['fornecedor'] ?? '');
                     $nota_fiscal = trim($_POST['nota_fiscal'] ?? '');
                     $observacoes = trim($_POST['observacoes'] ?? '');
                     
+                    if (empty($codigo_barras)) {
+                        throw new RuntimeException("O código de barras é obrigatório.");
+                    }
                     if (empty($numero_lote)) {
                         throw new RuntimeException("O número do lote é obrigatório.");
                     }
@@ -49,53 +52,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException("A quantidade total deve ser maior que zero.");
                     }
                     
-                    // Verificar se o lote já existe
-                    $stmt = $conn->prepare("SELECT id FROM lotes WHERE medicamento_id = ? AND numero_lote = ?");
-                    $stmt->execute([$med_id, $numero_lote]);
-                    
-                    if ($stmt->fetch()) {
-                        throw new RuntimeException("Já existe um lote com este número para este medicamento.");
-                    }
-                    
                     $conn->beginTransaction();
                     
-                    // Inserir novo lote
-                    $sql = "INSERT INTO lotes (medicamento_id, numero_lote, data_recebimento, data_validade, 
-                            quantidade_caixas, quantidade_por_caixa, quantidade_total, quantidade_atual, 
-                            fornecedor, nota_fiscal, observacoes, criado_em) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                    // 1. Verificar se o código de barras já existe para este medicamento
+                    $stmt = $conn->prepare("SELECT id FROM codigos_barras WHERE medicamento_id = ? AND codigo = ?");
+                    $stmt->execute([$med_id, $codigo_barras]);
+                    $codigo_barras_existente = $stmt->fetch();
+                    
+                    if ($codigo_barras_existente) {
+                        $codigo_barras_id = $codigo_barras_existente['id'];
+                    } else {
+                        // 2. Criar novo código de barras para este medicamento
+                        $stmt = $conn->prepare("INSERT INTO codigos_barras (medicamento_id, codigo) VALUES (?, ?)");
+                        $stmt->execute([$med_id, $codigo_barras]);
+                        $codigo_barras_id = (int)$conn->lastInsertId();
+                    }
+                    
+                    // 3. Verificar se o lote já existe para este código de barras
+                    $stmt = $conn->prepare("SELECT id FROM lotes WHERE codigo_barras_id = ? AND numero_lote = ?");
+                    $stmt->execute([$codigo_barras_id, $numero_lote]);
+                    
+                    if ($stmt->fetch()) {
+                        throw new RuntimeException("Já existe um lote com este número para este código de barras.");
+                    }
+                    
+                    // 4. Inserir novo lote (ligado ao código de barras)
+                    // quantidade_caixas e quantidade_por_caixa não são mais usados (valores padrão 0)
+                    $sql = "INSERT INTO lotes (codigo_barras_id, medicamento_id, numero_lote, data_recebimento, data_validade, 
+                            quantidade_total, quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
                     
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([
-                        $med_id, $numero_lote, $data_recebimento, $data_validade,
-                        $quantidade_caixas, $quantidade_por_caixa, $quantidade_total, $quantidade_total,
-                        $fornecedor, $nota_fiscal, $observacoes
+                        $codigo_barras_id, $med_id, $numero_lote, $data_recebimento, $data_validade,
+                        $quantidade_total, $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
                     ]);
                     
-                    // Atualizar estoque do medicamento
-                    $sql = "UPDATE medicamentos SET estoque_atual = estoque_atual + ?, atualizado_em = NOW() WHERE id = ?";
+                    // 5. Atualizar estoque do medicamento (soma de todos os lotes de todos os códigos de barras)
+                    $stmt = $conn->prepare("
+                        SELECT COALESCE(SUM(quantidade_atual), 0) as estoque_total
+                        FROM lotes 
+                        WHERE medicamento_id = ?
+                    ");
+                    $stmt->execute([$med_id]);
+                    $estoque_total = (int)$stmt->fetchColumn();
+                    
+                    $sql = "UPDATE medicamentos SET estoque_atual = ?, atualizado_em = NOW() WHERE id = ?";
                     $stmt = $conn->prepare($sql);
-                    $stmt->execute([$quantidade_total, $med_id]);
+                    $stmt->execute([$estoque_total, $med_id]);
                     
                     $conn->commit();
                     $_SESSION['success'] = "Lote adicionado com sucesso!";
                     
-                    header("Location: medicamentos_lotes.php?med_id=$med_id");
+                    // Se veio de lotes.php, redirecionar de volta
+                    if (isset($_POST['from_lotes']) && $_POST['from_lotes'] === '1') {
+                        header("Location: lotes.php");
+                    } else {
+                        header("Location: medicamentos_lotes.php?med_id=$med_id");
+                    }
                     exit;
                     
                 case 'edit_lote':
                     $lote_id = (int)$_POST['lote_id'];
+                    $codigo_barras = trim($_POST['codigo_barras'] ?? '');
                     $numero_lote = trim($_POST['numero_lote'] ?? '');
                     $data_recebimento = trim($_POST['data_recebimento'] ?? '');
                     $data_validade = trim($_POST['data_validade'] ?? '');
-                    $quantidade_caixas = (int)($_POST['quantidade_caixas'] ?? 0);
-                    $quantidade_por_caixa = (int)($_POST['quantidade_por_caixa'] ?? 0);
                     $quantidade_total = (int)($_POST['quantidade_total'] ?? 0);
                     $quantidade_atual = (int)($_POST['quantidade_atual'] ?? 0);
                     $fornecedor = trim($_POST['fornecedor'] ?? '');
                     $nota_fiscal = trim($_POST['nota_fiscal'] ?? '');
                     $observacoes = trim($_POST['observacoes'] ?? '');
                     
+                    if (empty($codigo_barras)) {
+                        throw new RuntimeException("O código de barras é obrigatório.");
+                    }
                     if (empty($numero_lote)) {
                         throw new RuntimeException("O número do lote é obrigatório.");
                     }
@@ -110,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     
                     // Verificar se o lote existe
-                    $stmt = $conn->prepare("SELECT id, quantidade_atual FROM lotes WHERE id = ? AND medicamento_id = ?");
+                    $stmt = $conn->prepare("SELECT id, quantidade_atual, codigo_barras_id FROM lotes WHERE id = ? AND medicamento_id = ?");
                     $stmt->execute([$lote_id, $med_id]);
                     $lote_original = $stmt->fetch(PDO::FETCH_ASSOC);
                     
@@ -118,41 +149,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException("Lote não encontrado.");
                     }
                     
-                    // Verificar se o número do lote não está em uso por outro lote
-                    $stmt = $conn->prepare("SELECT id FROM lotes WHERE medicamento_id = ? AND numero_lote = ? AND id != ?");
-                    $stmt->execute([$med_id, $numero_lote, $lote_id]);
-                    
-                    if ($stmt->fetch()) {
-                        throw new RuntimeException("Já existe outro lote com este número para este medicamento.");
-                    }
-                    
                     $conn->beginTransaction();
                     
-                    // Calcular diferença no estoque
-                    $diferenca_estoque = $quantidade_atual - $lote_original['quantidade_atual'];
+                    // 1. Verificar/criar código de barras
+                    $stmt = $conn->prepare("SELECT id FROM codigos_barras WHERE medicamento_id = ? AND codigo = ?");
+                    $stmt->execute([$med_id, $codigo_barras]);
+                    $codigo_barras_existente = $stmt->fetch();
                     
-                    // Atualizar lote
+                    if ($codigo_barras_existente) {
+                        $codigo_barras_id = $codigo_barras_existente['id'];
+                    } else {
+                        // Criar novo código de barras
+                        $stmt = $conn->prepare("INSERT INTO codigos_barras (medicamento_id, codigo) VALUES (?, ?)");
+                        $stmt->execute([$med_id, $codigo_barras]);
+                        $codigo_barras_id = (int)$conn->lastInsertId();
+                    }
+                    
+                    // 2. Verificar se o número do lote não está em uso por outro lote
+                    $stmt = $conn->prepare("SELECT id FROM lotes WHERE codigo_barras_id = ? AND numero_lote = ? AND id != ?");
+                    $stmt->execute([$codigo_barras_id, $numero_lote, $lote_id]);
+                    
+                    if ($stmt->fetch()) {
+                        throw new RuntimeException("Já existe outro lote com este número para este código de barras.");
+                    }
+                    
+                    // 3. Atualizar lote
                     $sql = "UPDATE lotes SET 
-                            numero_lote = ?, data_recebimento = ?, data_validade = ?, 
-                            quantidade_caixas = ?, quantidade_por_caixa = ?, quantidade_total = ?, 
-                            quantidade_atual = ?, fornecedor = ?, nota_fiscal = ?, observacoes = ?, 
+                            codigo_barras_id = ?, numero_lote = ?, data_recebimento = ?, data_validade = ?, 
+                            quantidade_total = ?, quantidade_atual = ?, fornecedor = ?, nota_fiscal = ?, observacoes = ?, 
                             atualizado_em = NOW() 
                             WHERE id = ? AND medicamento_id = ?";
                     
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([
-                        $numero_lote, $data_recebimento, $data_validade,
-                        $quantidade_caixas, $quantidade_por_caixa, $quantidade_total,
-                        $quantidade_atual, $fornecedor, $nota_fiscal, $observacoes,
+                        $codigo_barras_id, $numero_lote, $data_recebimento, $data_validade,
+                        $quantidade_total, $quantidade_atual, $fornecedor, $nota_fiscal, $observacoes,
                         $lote_id, $med_id
                     ]);
                     
-                    // Atualizar estoque do medicamento se houve alteração
-                    if ($diferenca_estoque != 0) {
-                        $sql = "UPDATE medicamentos SET estoque_atual = estoque_atual + ?, atualizado_em = NOW() WHERE id = ?";
-                        $stmt = $conn->prepare($sql);
-                        $stmt->execute([$diferenca_estoque, $med_id]);
-                    }
+                    // 4. Recalcular estoque total do medicamento
+                    $stmt = $conn->prepare("
+                        SELECT COALESCE(SUM(quantidade_atual), 0) as estoque_total
+                        FROM lotes 
+                        WHERE medicamento_id = ?
+                    ");
+                    $stmt->execute([$med_id]);
+                    $estoque_total = (int)$stmt->fetchColumn();
+                    
+                    $sql = "UPDATE medicamentos SET estoque_atual = ?, atualizado_em = NOW() WHERE id = ?";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->execute([$estoque_total, $med_id]);
                     
                     $conn->commit();
                     $_SESSION['success'] = "Lote atualizado com sucesso!";
@@ -178,10 +224,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $conn->prepare("DELETE FROM lotes WHERE id = ?");
                     $stmt->execute([$lote_id]);
                     
-                    // Atualizar estoque do medicamento
-                    $sql = "UPDATE medicamentos SET estoque_atual = estoque_atual - ?, atualizado_em = NOW() WHERE id = ?";
+                    // Recalcular estoque total do medicamento
+                    $stmt = $conn->prepare("
+                        SELECT COALESCE(SUM(quantidade_atual), 0) as estoque_total
+                        FROM lotes 
+                        WHERE medicamento_id = ?
+                    ");
+                    $stmt->execute([$med_id]);
+                    $estoque_total = (int)$stmt->fetchColumn();
+                    
+                    $sql = "UPDATE medicamentos SET estoque_atual = ?, atualizado_em = NOW() WHERE id = ?";
                     $stmt = $conn->prepare($sql);
-                    $stmt->execute([$lote['quantidade_atual'], $med_id]);
+                    $stmt->execute([$estoque_total, $med_id]);
                     
                     $conn->commit();
                     $_SESSION['success'] = "Lote excluído com sucesso!";
@@ -204,12 +258,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 try {
     // Buscar informações do medicamento
     $sql = "SELECT m.*, 
-                  f.nome AS fabricante_nome, 
                   c.nome AS categoria_nome,
                   u.nome AS unidade_nome,
                   u.sigla AS unidade_sigla
            FROM medicamentos m
-           LEFT JOIN fabricantes f ON m.fabricante_id = f.id
            LEFT JOIN categorias c ON m.categoria_id = c.id
            LEFT JOIN apresentacoes u ON m.apresentacao_id = u.id
            WHERE m.id = ?";
@@ -224,12 +276,19 @@ try {
         exit;
     }
     
-    // Buscar lotes do medicamento
-    $sql = "SELECT *, 
-                  DATEDIFF(data_validade, CURDATE()) AS dias_para_vencer
-           FROM lotes 
-           WHERE medicamento_id = ? 
-           ORDER BY data_validade ASC";
+    // Buscar códigos de barras do medicamento
+    $stmt = $conn->prepare("SELECT id, codigo FROM codigos_barras WHERE medicamento_id = ? ORDER BY codigo ASC");
+    $stmt->execute([$med_id]);
+    $codigos_barras = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Buscar lotes do medicamento (através dos códigos de barras)
+    $sql = "SELECT l.*, 
+                  cb.codigo AS codigo_barras,
+                  DATEDIFF(l.data_validade, CURDATE()) AS dias_para_vencer
+           FROM lotes l
+           LEFT JOIN codigos_barras cb ON l.codigo_barras_id = cb.id
+           WHERE l.medicamento_id = ? 
+           ORDER BY l.data_validade ASC";
     
     $stmt = $conn->prepare($sql);
     $stmt->execute([$med_id]);
@@ -237,7 +296,12 @@ try {
     
     // Se estiver editando um lote, carregar dados
     if ($edit_id > 0) {
-        $stmt = $conn->prepare("SELECT * FROM lotes WHERE id = ? AND medicamento_id = ?");
+        $stmt = $conn->prepare("
+            SELECT l.*, cb.codigo AS codigo_barras
+            FROM lotes l
+            LEFT JOIN codigos_barras cb ON l.codigo_barras_id = cb.id
+            WHERE l.id = ? AND l.medicamento_id = ?
+        ");
         $stmt->execute([$edit_id, $med_id]);
         $lote_edit = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -414,7 +478,7 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
                             Novo lote
                         </button>
-                        <a href="../admin_old/medicamentos_view.php?id=<?php echo $med_id; ?>" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sky-600 font-semibold shadow hover:shadow-lg transition">
+                        <a href="medicamentos_view.php?id=<?php echo $med_id; ?>" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sky-600 font-semibold shadow hover:shadow-lg transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12s3.75-6.75 9.75-6.75 9.75 6.75 9.75 6.75-3.75 6.75-9.75 6.75S2.25 12 2.25 12z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15.375a3.375 3.375 0 1 0 0-6.75 3.375 3.375 0 0 0 0 6.75z"/></svg>
                             Ver detalhes
                         </a>
@@ -451,7 +515,8 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                         <table class="min-w-full divide-y divide-slate-100 text-left">
                             <thead class="bg-white/60">
                                 <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-6 py-3">Número</th>
+                                    <th class="px-6 py-3">Código de Barras</th>
+                                    <th class="px-6 py-3">Número do Lote</th>
                                     <th class="px-6 py-3">Recebimento</th>
                                     <th class="px-6 py-3">Validade</th>
                                     <th class="px-6 py-3">Qtd. Total</th>
@@ -467,6 +532,9 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                         $quantidade_atual = (int)($lote['quantidade_atual'] ?? 0);
                                     ?>
                                     <tr class="text-sm text-slate-600">
+                                        <td class="px-6 py-4">
+                                            <span class="font-mono text-xs text-slate-700"><?php echo !empty($lote['codigo_barras']) ? htmlspecialchars($lote['codigo_barras']) : '—'; ?></span>
+                                        </td>
                                         <td class="px-6 py-4">
                                             <div class="flex flex-col">
                                                 <span class="font-semibold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></span>
@@ -536,7 +604,9 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                             <div class="p-5 bg-white/80 space-y-3">
                                 <div class="flex items-start justify-between">
                                     <div>
-                                        <p class="text-xs text-slate-500 uppercase tracking-wide">Lote</p>
+                                        <p class="text-xs text-slate-500 uppercase tracking-wide">Código de Barras</p>
+                                        <p class="font-mono text-xs text-slate-700"><?php echo !empty($lote['codigo_barras']) ? htmlspecialchars($lote['codigo_barras']) : '—'; ?></p>
+                                        <p class="text-xs text-slate-500 uppercase tracking-wide mt-2">Lote</p>
                                         <p class="font-semibold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></p>
                                         <?php if (!empty($lote['nota_fiscal'])): ?>
                                             <p class="text-xs text-slate-400 mt-1">NF: <?php echo htmlspecialchars($lote['nota_fiscal']); ?></p>
@@ -628,14 +698,32 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                     <input type="hidden" name="lote_id" value="<?php echo (int)$lote_edit['id']; ?>">
                 <?php endif; ?>
 
+                <div class="space-y-4">
+                    <div>
+                        <label for="codigo_barras_input" class="block text-sm font-medium text-slate-700 mb-2">Código de Barras <span class="text-rose-500">*</span></label>
+                        <?php if (!empty($codigos_barras)): ?>
+                            <select name="codigo_barras_select" id="codigo_barras" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500 mb-2">
+                                <option value="">Ou selecione um código existente</option>
+                                <?php foreach ($codigos_barras as $cb): ?>
+                                    <option value="<?php echo htmlspecialchars($cb['codigo']); ?>" <?php echo ($lote_edit && isset($lote_edit['codigo_barras']) && $lote_edit['codigo_barras'] == $cb['codigo']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($cb['codigo']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php endif; ?>
+                        <input type="text" name="codigo_barras" id="codigo_barras_input" value="<?php echo $lote_edit && isset($lote_edit['codigo_barras']) ? htmlspecialchars($lote_edit['codigo_barras']) : ''; ?>" placeholder="Digite ou escaneie o código de barras" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500" required autofocus>
+                        <span class="text-xs text-slate-400 mt-1 block">Se o código não existir, será criado automaticamente para este medicamento.</span>
+                    </div>
+                </div>
+
                 <div class="grid gap-6 md:grid-cols-2">
                     <div>
                         <label for="numero_lote" class="block text-sm font-medium text-slate-700 mb-2">Número do Lote <span class="text-rose-500">*</span></label>
                         <input type="text" name="numero_lote" id="numero_lote" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['numero_lote']) : ''; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
                     </div>
                     <div>
-                        <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
-                        <input type="text" name="fornecedor" id="fornecedor" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['fornecedor']) : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                        <label for="data_validade" class="block text-sm font-medium text-slate-700 mb-2">Data de Validade <span class="text-rose-500">*</span></label>
+                        <input type="date" name="data_validade" id="data_validade" value="<?php echo $lote_edit ? $lote_edit['data_validade'] : ''; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
                     </div>
                 </div>
 
@@ -645,32 +733,32 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                         <input type="date" name="data_recebimento" id="data_recebimento" value="<?php echo $lote_edit ? $lote_edit['data_recebimento'] : date('Y-m-d'); ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
                     </div>
                     <div>
-                        <label for="data_validade" class="block text-sm font-medium text-slate-700 mb-2">Data de Validade <span class="text-rose-500">*</span></label>
-                        <input type="date" name="data_validade" id="data_validade" value="<?php echo $lote_edit ? $lote_edit['data_validade'] : ''; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                    </div>
-                    <div>
-                        <label for="nota_fiscal" class="block text-sm font-medium text-slate-700 mb-2">Nota Fiscal</label>
-                        <input type="text" name="nota_fiscal" id="nota_fiscal" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['nota_fiscal']) : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                    </div>
-                </div>
-
-                <div class="grid gap-6 md:grid-cols-4">
-                    <div>
-                        <label for="quantidade_caixas" class="block text-sm font-medium text-slate-700 mb-2">Qtd. Caixas</label>
-                        <input type="number" name="quantidade_caixas" id="quantidade_caixas" min="0" value="<?php echo $lote_edit ? (int)$lote_edit['quantidade_caixas'] : 0; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                    </div>
-                    <div>
-                        <label for="quantidade_por_caixa" class="block text-sm font-medium text-slate-700 mb-2">Unid. por Caixa</label>
-                        <input type="number" name="quantidade_por_caixa" id="quantidade_por_caixa" min="0" value="<?php echo $lote_edit ? (int)$lote_edit['quantidade_por_caixa'] : 0; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                    </div>
-                    <div>
-                        <label for="quantidade_total" class="block text-sm font-medium text-slate-700 mb-2">Qtd. Total <span class="text-rose-500">*</span></label>
-                        <input type="number" name="quantidade_total" id="quantidade_total" min="1" value="<?php echo $lote_edit ? (int)$lote_edit['quantidade_total'] : 0; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                        <label for="quantidade_total" class="block text-sm font-medium text-slate-700 mb-2">Quantidade (unidades) <span class="text-rose-500">*</span></label>
+                        <input type="number" name="quantidade_total" id="quantidade_total" min="1" value="<?php echo $lote_edit ? (int)$lote_edit['quantidade_total'] : 1; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                        <span class="text-xs text-slate-400 mt-1 block">Quantidade sempre em unidades.</span>
                     </div>
                     <?php if ($lote_edit): ?>
                         <div>
                             <label for="quantidade_atual" class="block text-sm font-medium text-slate-700 mb-2">Qtd. Atual <span class="text-rose-500">*</span></label>
                             <input type="number" name="quantidade_atual" id="quantidade_atual" min="0" value="<?php echo (int)$lote_edit['quantidade_atual']; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                    <?php else: ?>
+                        <div>
+                            <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
+                            <input type="text" name="fornecedor" id="fornecedor" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['fornecedor']) : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div>
+                        <label for="nota_fiscal" class="block text-sm font-medium text-slate-700 mb-2">Nota Fiscal</label>
+                        <input type="text" name="nota_fiscal" id="nota_fiscal" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['nota_fiscal']) : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <?php if ($lote_edit): ?>
+                        <div>
+                            <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
+                            <input type="text" name="fornecedor" id="fornecedor" value="<?php echo htmlspecialchars($lote_edit['fornecedor'] ?? ''); ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
                         </div>
                     <?php endif; ?>
                 </div>
@@ -696,21 +784,74 @@ $pageTitle = 'Gerenciar lotes do medicamento';
 
     <script src="js/sidebar.js" defer></script>
     <script>
-        // Auto-calcular quantidade total
-        const qtdCaixas = document.getElementById('quantidade_caixas');
-        const qtdPorCaixa = document.getElementById('quantidade_por_caixa');
-        const qtdTotal = document.getElementById('quantidade_total');
+        // Permitir digitar novo código de barras ou selecionar existente
+        const codigoBarrasSelect = document.getElementById('codigo_barras');
+        const codigoBarrasInput = document.getElementById('codigo_barras_input');
         
-        function calcularTotal() {
-            const caixas = parseInt(qtdCaixas.value) || 0;
-            const porCaixa = parseInt(qtdPorCaixa.value) || 0;
-            if (caixas > 0 && porCaixa > 0) {
-                qtdTotal.value = caixas * porCaixa;
+        if (codigoBarrasSelect && codigoBarrasInput) {
+            // Quando selecionar um código existente, preencher o input
+            codigoBarrasSelect.addEventListener('change', function() {
+                if (this.value !== '') {
+                    codigoBarrasInput.value = this.value;
+                    codigoBarrasInput.focus();
+                }
+            });
+            
+            // Quando digitar no input, limpar o select se o valor for diferente
+            codigoBarrasInput.addEventListener('input', function() {
+                if (codigoBarrasSelect.value !== '' && codigoBarrasSelect.value !== this.value.trim()) {
+                    codigoBarrasSelect.value = '';
+                }
+            });
+            
+            // Focar no input quando o modal abrir
+            const modal = document.getElementById('addLoteModal') || document.getElementById('editLoteModal');
+            if (modal) {
+                // Observer para detectar quando o modal é exibido
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            if (!modal.classList.contains('hidden') && codigoBarrasInput) {
+                                setTimeout(() => {
+                                    codigoBarrasInput.focus();
+                                }, 100);
+                            }
+                        }
+                    });
+                });
+                observer.observe(modal, { attributes: true });
+                
+                // Também focar se o modal já estiver visível
+                if (!modal.classList.contains('hidden') && codigoBarrasInput) {
+                    setTimeout(() => {
+                        codigoBarrasInput.focus();
+                    }, 100);
+                }
             }
+            
+            // Focar quando clicar no botão de adicionar lote
+            const addLoteButtons = document.querySelectorAll('[onclick*="addLoteModal"]');
+            addLoteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    setTimeout(() => {
+                        if (codigoBarrasInput) {
+                            codigoBarrasInput.focus();
+                        }
+                    }, 200);
+                });
+            });
         }
         
-        qtdCaixas?.addEventListener('input', calcularTotal);
-        qtdPorCaixa?.addEventListener('input', calcularTotal);
+        // Ao submeter o formulário, garantir que o valor correto seja enviado
+        const form = document.querySelector('form[method="post"]');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (codigoBarrasSelect) {
+                    // Desabilitar o select para não enviar valor duplicado
+                    codigoBarrasSelect.disabled = true;
+                }
+            });
+        }
     </script>
 </body>
 </html>

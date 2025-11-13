@@ -56,7 +56,7 @@ $pageTitle = 'Consulta de Medicamentos';
                     <span class="text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-500">Consulta de Medicamentos</span>
                     <div>
                         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">Medicamentos disponíveis</h1>
-                        <p class="mt-2 text-sm sm:text-base text-slate-500 max-w-3xl">Pesquise pelo nome ou código de barras para verificar rapidamente apresentações, fabricantes e estoque atual.</p>
+                        <p class="mt-2 text-sm sm:text-base text-slate-500 max-w-3xl">Pesquise pelo nome ou código de barras para verificar rapidamente apresentações e estoque atual.</p>
                     </div>
                 </div>
             </header>
@@ -128,7 +128,6 @@ $pageTitle = 'Consulta de Medicamentos';
                         </span>
                     </div>
                     <div class="grid gap-3 sm:grid-cols-3 text-xs sm:text-sm text-slate-500">
-                        <div><span class="font-semibold text-slate-600">Fabricante:</span> ${item.fabricante ?? 'Não informado'}</div>
                         <div><span class="font-semibold text-slate-600">Código:</span> ${item.codigo_barras ?? '—'}</div>
                         <div><span class="font-semibold text-slate-600">Estoque cadastrado:</span> ${formatNumero(item.estoque_atual ?? 0)}</div>
                     </div>

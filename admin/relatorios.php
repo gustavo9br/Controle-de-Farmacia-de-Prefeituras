@@ -52,19 +52,16 @@ if ($reportType === 'estoque' || $reportType === 'estoque_minimo') {
             'SELECT 
                 m.id,
                 m.nome,
-                m.codigo_barras,
                 m.estoque_minimo,
                 COALESCE(SUM(CASE WHEN l.quantidade_atual IS NULL THEN 0 ELSE l.quantidade_atual END), 0) AS estoque_total,
-                COALESCE(f.nome, "Não informado") AS fabricante,
                 COALESCE(c.nome, "Sem categoria") AS categoria,
                 COALESCE(a.nome, "Sem apresentação") AS apresentacao
             FROM medicamentos m
             LEFT JOIN lotes l ON l.medicamento_id = m.id
-            LEFT JOIN fabricantes f ON m.fabricante_id = f.id
             LEFT JOIN categorias c ON m.categoria_id = c.id
             LEFT JOIN apresentacoes a ON m.apresentacao_id = a.id
             WHERE m.ativo = 1
-            GROUP BY m.id, m.nome, m.codigo_barras, m.estoque_minimo, f.nome, c.nome, a.nome
+            GROUP BY m.id, m.nome, m.estoque_minimo, c.nome, a.nome
             ORDER BY m.nome ASC'
         );
         $stmt->execute();
@@ -112,12 +109,11 @@ if ($reportType === 'vencimento') {
                 l.data_validade,
                 l.quantidade_atual,
                 m.nome,
-                m.codigo_barras,
-                COALESCE(f.nome, "Não informado") AS fabricante,
+                cb.codigo as codigo_barras,
                 DATEDIFF(l.data_validade, CURDATE()) AS dias_restantes
             FROM lotes l
             INNER JOIN medicamentos m ON l.medicamento_id = m.id
-            LEFT JOIN fabricantes f ON m.fabricante_id = f.id
+            LEFT JOIN codigos_barras cb ON l.codigo_barras_id = cb.id
             WHERE l.data_validade IS NOT NULL
               AND l.quantidade_atual > 0
               AND l.data_validade <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)
@@ -412,7 +408,6 @@ function vencimentoBadgeClass($dias)
                                     <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
                                         <th class="px-4 sm:px-6 py-3">Medicamento</th>
                                         <th class="px-4 sm:px-6 py-3">Apresentação</th>
-                                        <th class="px-4 sm:px-6 py-3">Fabricante</th>
                                         <th class="px-4 sm:px-6 py-3">Estoque Total</th>
                                         <th class="px-4 sm:px-6 py-3">Estoque Mínimo</th>
                                         <th class="px-4 sm:px-6 py-3">Situação</th>
@@ -428,7 +423,6 @@ function vencimentoBadgeClass($dias)
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo htmlspecialchars($item['apresentacao']); ?></td>
-                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo htmlspecialchars($item['fabricante']); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-slate-900"><?php echo formatNumber($item['estoque_total']); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo $item['estoque_minimo'] > 0 ? formatNumber($item['estoque_minimo']) : '—'; ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4">
@@ -490,7 +484,6 @@ function vencimentoBadgeClass($dias)
                                         <tr class="text-sm text-slate-600">
                                             <td class="px-4 sm:px-6 py-3 sm:py-4">
                                                 <div class="font-semibold text-slate-900"><?php echo htmlspecialchars($item['nome']); ?></div>
-                                                <div class="text-xs text-slate-400">Fabricante: <?php echo htmlspecialchars($item['fabricante']); ?></div>
                                             </td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-slate-900"><?php echo formatNumber($item['estoque_total']); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo formatNumber($item['estoque_minimo']); ?></td>
@@ -559,7 +552,6 @@ function vencimentoBadgeClass($dias)
                                         <tr class="text-sm text-slate-600">
                                             <td class="px-4 sm:px-6 py-3 sm:py-4">
                                                 <div class="font-semibold text-slate-900"><?php echo htmlspecialchars($item['nome']); ?></div>
-                                                <div class="text-xs text-slate-400">Fabricante: <?php echo htmlspecialchars($item['fabricante']); ?></div>
                                             </td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 font-mono text-xs text-slate-500 uppercase"><?php echo htmlspecialchars($item['numero_lote']); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo formatarData($item['data_validade']); ?></td>

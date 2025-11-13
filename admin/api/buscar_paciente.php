@@ -35,16 +35,19 @@ try {
                 WHERE p.ativo = 1
                 AND (
                     p.nome LIKE :query
-                    OR p.cpf LIKE :query_exact
-                    OR p.cartao_sus LIKE :query_exact
+                    OR p.cpf LIKE :query
+                    OR REPLACE(REPLACE(p.cpf, '.', ''), '-', '') LIKE :query_clean
+                    OR p.cartao_sus LIKE :query
+                    OR REPLACE(p.cartao_sus, ' ', '') LIKE :query_clean
                 )
                 ORDER BY p.nome ASC
                 LIMIT 15";
         
+        $query_clean = '%' . preg_replace('/[^0-9]/', '', $query) . '%';
         $stmt = $conn->prepare($sql);
         $stmt->execute([
             ':query' => '%' . $query . '%',
-            ':query_exact' => $query,
+            ':query_clean' => $query_clean,
             ':med_id' => $medicamento_id
         ]);
     } else {
@@ -58,16 +61,19 @@ try {
                 WHERE p.ativo = 1
                 AND (
                     p.nome LIKE :query
-                    OR p.cpf LIKE :query_exact
-                    OR p.cartao_sus LIKE :query_exact
+                    OR p.cpf LIKE :query
+                    OR REPLACE(REPLACE(p.cpf, '.', ''), '-', '') LIKE :query_clean
+                    OR p.cartao_sus LIKE :query
+                    OR REPLACE(p.cartao_sus, ' ', '') LIKE :query_clean
                 )
                 ORDER BY p.nome ASC
                 LIMIT 15";
         
+        $query_clean = '%' . preg_replace('/[^0-9]/', '', $query) . '%';
         $stmt = $conn->prepare($sql);
         $stmt->execute([
             ':query' => '%' . $query . '%',
-            ':query_exact' => $query
+            ':query_clean' => $query_clean
         ]);
     }
     

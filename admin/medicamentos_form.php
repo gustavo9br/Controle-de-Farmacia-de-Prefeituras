@@ -13,8 +13,6 @@ $medicamento = [
     'id' => 0,
     'nome' => '',
     'descricao' => '',
-    'codigo_barras' => null,
-    'fabricante_id' => null,
     'categoria_id' => null,
     'apresentacao_id' => null,
     'estoque_minimo' => ESTOQUE_MINIMO_PADRAO,
@@ -22,8 +20,6 @@ $medicamento = [
 ];
 
 try {
-    $fabricantes = $conn->query("SELECT id, nome FROM fabricantes WHERE ativo = 1 ORDER BY nome ASC")
-        ->fetchAll(PDO::FETCH_ASSOC);
     $categorias = $conn->query("SELECT id, nome FROM categorias WHERE ativo = 1 ORDER BY nome ASC")
         ->fetchAll(PDO::FETCH_ASSOC);
     $apresentacoes = $conn->query("SELECT id, nome, sigla FROM apresentacoes WHERE ativo = 1 ORDER BY nome ASC")
@@ -47,13 +43,6 @@ if ($isEditing && empty($errors)) {
 
         $medicamento = array_merge($medicamento, $data);
 
-        if (empty($medicamento['fabricante_id']) && !empty($medicamento['fabricante'])) {
-            $stmt = $conn->prepare('SELECT id FROM fabricantes WHERE nome = ? LIMIT 1');
-            $stmt->execute([$medicamento['fabricante']]);
-            if ($idFound = $stmt->fetchColumn()) {
-                $medicamento['fabricante_id'] = $idFound;
-            }
-        }
         if (empty($medicamento['categoria_id']) && !empty($medicamento['categoria'])) {
             $stmt = $conn->prepare('SELECT id FROM categorias WHERE nome = ? LIMIT 1');
             $stmt->execute([$medicamento['categoria']]);
@@ -81,8 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $medicamento['nome'] = trim($_POST['nome'] ?? '');
         $medicamento['descricao'] = trim($_POST['descricao'] ?? '');
-        $medicamento['codigo_barras'] = trim($_POST['codigo_barras'] ?? '') ?: null;
-        $medicamento['fabricante_id'] = !empty($_POST['fabricante_id']) ? (int)$_POST['fabricante_id'] : null;
         $medicamento['categoria_id'] = !empty($_POST['categoria_id']) ? (int)$_POST['categoria_id'] : null;
         $medicamento['apresentacao_id'] = !empty($_POST['apresentacao_id']) ? (int)$_POST['apresentacao_id'] : null;
         $medicamento['estoque_minimo'] = max(0, (int)($_POST['estoque_minimo'] ?? ESTOQUE_MINIMO_PADRAO));
@@ -97,29 +84,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->beginTransaction();
 
                 if ($isEditing) {
-                    $sql = 'UPDATE medicamentos SET nome = ?, descricao = ?, codigo_barras = ?, fabricante_id = ?, categoria_id = ?, apresentacao_id = ?, estoque_minimo = ?, ativo = ?, atualizado_em = NOW() WHERE id = ?';
+                    $sql = 'UPDATE medicamentos SET nome = ?, descricao = ?, categoria_id = ?, apresentacao_id = ?, estoque_minimo = ?, ativo = ?, atualizado_em = NOW() WHERE id = ?';
                     $stmt = $conn->prepare($sql);
                     $stmt->bindValue(1, $medicamento['nome']);
                     $stmt->bindValue(2, $medicamento['descricao']);
-                    $stmt->bindValue(3, $medicamento['codigo_barras']);
-                    $stmt->bindValue(4, $medicamento['fabricante_id'], $medicamento['fabricante_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
-                    $stmt->bindValue(5, $medicamento['categoria_id'], $medicamento['categoria_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
-                    $stmt->bindValue(6, $medicamento['apresentacao_id'], $medicamento['apresentacao_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
-                    $stmt->bindValue(7, $medicamento['estoque_minimo'], PDO::PARAM_INT);
-                    $stmt->bindValue(8, $medicamento['ativo'], PDO::PARAM_INT);
-                    $stmt->bindValue(9, $id, PDO::PARAM_INT);
+                    $stmt->bindValue(3, $medicamento['categoria_id'], $medicamento['categoria_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                    $stmt->bindValue(4, $medicamento['apresentacao_id'], $medicamento['apresentacao_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                    $stmt->bindValue(5, $medicamento['estoque_minimo'], PDO::PARAM_INT);
+                    $stmt->bindValue(6, $medicamento['ativo'], PDO::PARAM_INT);
+                    $stmt->bindValue(7, $id, PDO::PARAM_INT);
                     $stmt->execute();
                 } else {
-                    $sql = 'INSERT INTO medicamentos (nome, descricao, codigo_barras, fabricante_id, categoria_id, apresentacao_id, estoque_minimo, estoque_atual, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, NOW(), NOW())';
+                    $sql = 'INSERT INTO medicamentos (nome, descricao, categoria_id, apresentacao_id, estoque_minimo, estoque_atual, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 0, ?, NOW(), NOW())';
                     $stmt = $conn->prepare($sql);
                     $stmt->bindValue(1, $medicamento['nome']);
                     $stmt->bindValue(2, $medicamento['descricao']);
-                    $stmt->bindValue(3, $medicamento['codigo_barras']);
-                    $stmt->bindValue(4, $medicamento['fabricante_id'], $medicamento['fabricante_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
-                    $stmt->bindValue(5, $medicamento['categoria_id'], $medicamento['categoria_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
-                    $stmt->bindValue(6, $medicamento['apresentacao_id'], $medicamento['apresentacao_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
-                    $stmt->bindValue(7, $medicamento['estoque_minimo'], PDO::PARAM_INT);
-                    $stmt->bindValue(8, $medicamento['ativo'], PDO::PARAM_INT);
+                    $stmt->bindValue(3, $medicamento['categoria_id'], $medicamento['categoria_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                    $stmt->bindValue(4, $medicamento['apresentacao_id'], $medicamento['apresentacao_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                    $stmt->bindValue(5, $medicamento['estoque_minimo'], PDO::PARAM_INT);
+                    $stmt->bindValue(6, $medicamento['ativo'], PDO::PARAM_INT);
                     $stmt->execute();
                     $medicamento['id'] = (int)$conn->lastInsertId();
                 }
@@ -251,28 +234,6 @@ $pageTitle = $isEditing ? 'Editar medicamento' : 'Novo medicamento';
                             <input type="text" name="nome" value="<?php echo htmlspecialchars($medicamento['nome']); ?>" class="rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-800 shadow focus:border-primary-500 focus:ring-primary-500" required>
                         </label>
                         <label class="flex flex-col gap-2">
-                            <span class="text-xs sm:text-sm font-medium text-slate-600">Código de Barras</span>
-                            <input type="text" name="codigo_barras" value="<?php echo htmlspecialchars($medicamento['codigo_barras'] ?? ''); ?>" placeholder="Ex: 7891234567890" class="rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-800 shadow focus:border-primary-500 focus:ring-primary-500" maxlength="30">
-                            <span class="text-xs text-slate-400">EAN-13, EAN-8 ou código interno</span>
-                        </label>
-                        <label class="flex flex-col gap-2 lg:col-span-2">
-                            <span class="text-sm font-medium text-slate-600">Descrição</span>
-                            <textarea name="descricao" rows="3" class="rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500"><?php echo htmlspecialchars($medicamento['descricao']); ?></textarea>
-                        </label>
-                    </div>
-
-                    <div class="grid gap-4 sm:gap-5 lg:grid-cols-2 xl:grid-cols-4">
-                        <label class="flex flex-col gap-2">
-                            <span class="text-xs sm:text-sm font-medium text-slate-600">Fabricante</span>
-                            <select name="fabricante_id" class="rounded-2xl border border-slate-100 bg-white px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
-                                <option value="">Selecione</option>
-                                <?php foreach ($fabricantes as $fab): ?>
-                                    <option value="<?php echo $fab['id']; ?>" <?php echo ($medicamento['fabricante_id'] == $fab['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($fab['nome']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <span class="text-xs text-slate-400">Gerencie fabricantes em Configurações &gt; Fabricantes.</span>
-                        </label>
-                        <label class="flex flex-col gap-2">
                             <span class="text-sm font-medium text-slate-600">Categoria</span>
                             <select name="categoria_id" class="rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
                                 <option value="">Selecione</option>
@@ -292,6 +253,10 @@ $pageTitle = $isEditing ? 'Editar medicamento' : 'Novo medicamento';
                             </select>
                             <span class="text-xs text-slate-400">Gerencie apresentações em Configurações &gt; Apresentações.</span>
                         </label>
+                        <label class="flex flex-col gap-2 lg:col-span-2">
+                            <span class="text-sm font-medium text-slate-600">Descrição</span>
+                            <textarea name="descricao" rows="3" class="rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500"><?php echo htmlspecialchars($medicamento['descricao']); ?></textarea>
+                        </label>
                     </div>
 
                     <div class="grid gap-4 sm:gap-5 lg:grid-cols-3">
@@ -308,7 +273,7 @@ $pageTitle = $isEditing ? 'Editar medicamento' : 'Novo medicamento';
 
                 <section class="glass-card p-5 sm:p-6 space-y-3 sm:space-y-4">
                     <h2 class="text-base sm:text-lg font-semibold text-slate-900">Próximos passos</h2>
-                    <p class="text-xs sm:text-sm text-slate-500">Após salvar, utilize as telas de lotes e saídas para cadastrar movimentações, quantidades físicas e códigos de barras por lote.</p>
+                    <p class="text-xs sm:text-sm text-slate-500">Após salvar, utilize a tela de lotes para cadastrar códigos de barras e lotes deste medicamento. Cada lote deve ter um código de barras associado.</p>
                 </section>
 
                 <section class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
