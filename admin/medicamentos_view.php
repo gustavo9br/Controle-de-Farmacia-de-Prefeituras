@@ -159,64 +159,37 @@ $pageTitle = 'Detalhes do Medicamento';
         <main class="content-area">
             <div class="space-y-8">
             <!-- Header -->
-            <header class="flex flex-col gap-3 sm:gap-4 lg:gap-6">
-                <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-500">
-                    <a href="medicamentos.php" class="hover:text-primary-600 transition-colors">Medicamentos</a>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <span class="text-slate-900 font-medium">Detalhes</span>
-                </div>
-                
-                <div class="space-y-3 sm:space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                        <div class="space-y-2 flex-1 min-w-0">
-                            <h1 class="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-slate-900 break-words"><?php echo htmlspecialchars($medicamento['nome']); ?></h1>
-                            <?php
-                            // Buscar códigos de barras do medicamento
-                            $stmt = $conn->prepare("SELECT codigo FROM codigos_barras WHERE medicamento_id = ? ORDER BY codigo ASC LIMIT 3");
-                            $stmt->execute([$id]);
-                            $codigos_barras_med = $stmt->fetchAll(PDO::FETCH_COLUMN);
-                            ?>
-                            <?php if (!empty($codigos_barras_med)): ?>
-                                <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                                    <?php foreach ($codigos_barras_med as $cb): ?>
-                                        <div class="flex items-center gap-1.5">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                            <span class="font-mono text-xs"><?php echo htmlspecialchars($cb); ?></span>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-2.5 w-full sm:w-auto">
-                            <a href="medicamentos_form.php?id=<?php echo $id; ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-white font-semibold shadow-glow hover:bg-primary-500 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                Editar
-                            </a>
-                            <button onclick="document.getElementById('codigosBarrasModal').classList.remove('hidden')" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
-                                <span class="hidden sm:inline">Gerenciar Códigos de Barras</span>
-                                <span class="sm:hidden">Códigos</span>
-                            </button>
-                            <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                                <span class="hidden sm:inline">Gerenciar Lotes</span>
-                                <span class="sm:hidden">Lotes</span>
-                            </a>
-                        </div>
+            <header class="flex flex-col gap-3 sm:gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <h1 class="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 break-words"><?php echo htmlspecialchars($medicamento['nome']); ?></h1>
+                        <?php if ($medicamento['ativo']): ?>
+                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Ativo
+                            </span>
+                        <?php else: ?>
+                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-700 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                Inativo
+                            </span>
+                        <?php endif; ?>
                     </div>
                     
-                    <?php if ($medicamento['ativo']): ?>
-                        <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-medium text-emerald-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            Ativo
-                        </span>
-                    <?php else: ?>
-                        <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-4 py-1.5 text-sm font-medium text-rose-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            Inativo
-                        </span>
-                    <?php endif; ?>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="medicamentos_form.php?id=<?php echo $id; ?>" class="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white font-semibold shadow hover:bg-primary-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            Editar
+                        </a>
+                        <button onclick="document.getElementById('codigosBarrasModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                            <span class="hidden sm:inline">Códigos</span>
+                        </button>
+                        <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            <span class="hidden sm:inline">Lotes</span>
+                        </a>
+                    </div>
                 </div>
             </header>
 
@@ -234,103 +207,68 @@ $pageTitle = 'Detalhes do Medicamento';
                 </div>
             <?php endif; ?>
 
-            <!-- Cards de Resumo -->
-            <div class="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
-                <!-- Card Estoque -->
-                <div class="glass-card p-4 sm:p-6 space-y-3 sm:space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Estoque Atual</h3>
-                        <div class="rounded-full bg-amber-100 p-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                        </div>
-                    </div>
+            <!-- Informações do Medicamento -->
+            <div class="glass-card p-4 sm:p-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div>
-                        <div class="text-3xl font-bold text-slate-900"><?php echo $estoqueAtual; ?></div>
-                        <p class="text-sm text-slate-500 mt-1">unidades disponíveis</p>
-                        <div class="mt-3">
-                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo estoqueBadgeClass($estoqueAtual, $estoqueMinimo); ?>">
-                                <?php if ($estoqueAtual <= 0): ?>
-                                    Estoque zerado
-                                <?php elseif ($estoqueAtual <= $estoqueMinimo): ?>
-                                    Estoque baixo
-                                <?php else: ?>
-                                    Estoque adequado
-                                <?php endif; ?>
-                            </span>
-                            <span class="text-xs text-slate-400 ml-2">Mínimo: <?php echo $estoqueMinimo; ?></span>
-                        </div>
+                        <p class="text-xs text-slate-500 mb-1">Estoque Atual</p>
+                        <p class="text-xl sm:text-2xl font-bold text-slate-900"><?php echo $estoqueAtual; ?></p>
+                        <p class="text-xs text-slate-400 mt-1">Mínimo: <?php echo $estoqueMinimo; ?></p>
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mt-2 <?php echo estoqueBadgeClass($estoqueAtual, $estoqueMinimo); ?>">
+                            <?php if ($estoqueAtual <= 0): ?>
+                                Zerado
+                            <?php elseif ($estoqueAtual <= $estoqueMinimo): ?>
+                                Baixo
+                            <?php else: ?>
+                                Adequado
+                            <?php endif; ?>
+                        </span>
                     </div>
-                </div>
-
-                <!-- Card Lotes -->
-                <div class="glass-card p-4 sm:p-6 space-y-3 sm:space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Lotes Cadastrados</h3>
-                        <div class="rounded-full bg-sky-100 p-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                        </div>
-                    </div>
+                    
                     <div>
-                        <div class="text-3xl font-bold text-slate-900"><?php echo count($lotes); ?></div>
-                        <p class="text-sm text-slate-500 mt-1">lotes registrados</p>
+                        <p class="text-xs text-slate-500 mb-1">Lotes Cadastrados</p>
+                        <p class="text-xl sm:text-2xl font-bold text-slate-900"><?php echo count($lotes); ?></p>
                         <?php if (count($lotes) > 0): ?>
                             <?php 
                             $lotesAtivos = array_filter($lotes, fn($l) => $l['quantidade_atual'] > 0);
                             $lotesVencidos = array_filter($lotes, fn($l) => isset($l['dias_para_vencer']) && $l['dias_para_vencer'] < 0);
                             ?>
-                            <div class="mt-3 text-xs text-slate-400">
+                            <p class="text-xs text-slate-400 mt-1">
                                 <?php echo count($lotesAtivos); ?> ativos
                                 <?php if (count($lotesVencidos) > 0): ?>
-                                    <span class="mx-1">•</span>
-                                    <span class="text-rose-600"><?php echo count($lotesVencidos); ?> vencidos</span>
+                                    <span class="text-rose-600"> • <?php echo count($lotesVencidos); ?> vencidos</span>
                                 <?php endif; ?>
-                            </div>
+                            </p>
                         <?php endif; ?>
                     </div>
-                </div>
-            </div>
-
-            <!-- Informações Detalhadas -->
-            <div class="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
-                <!-- Informações Gerais -->
-                <div class="glass-card p-4 sm:p-6 space-y-4 sm:space-y-6">
-                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Informações Gerais
-                    </h2>
                     
-                    <div class="space-y-4">
-                        <div class="flex justify-between py-3 border-b border-slate-100">
-                            <span class="text-sm font-medium text-slate-500">Categoria</span>
-                            <span class="text-sm text-slate-900"><?php echo !empty($medicamento['categoria_nome']) ? htmlspecialchars($medicamento['categoria_nome']) : 'Não informado'; ?></span>
-                        </div>
-                        <div class="flex justify-between py-3 border-b border-slate-100">
-                            <span class="text-sm font-medium text-slate-500">Apresentação</span>
-                            <span class="text-sm text-slate-900">
-                                <?php 
-                                if (!empty($medicamento['unidade_nome'])) {
-                                    echo htmlspecialchars($medicamento['unidade_nome']);
-                                    if (!empty($medicamento['unidade_sigla'])) {
-                                        echo ' (' . htmlspecialchars($medicamento['unidade_sigla']) . ')';
-                                    }
-                                } else {
-                                    echo 'Não informado';
+                    <div>
+                        <p class="text-xs text-slate-500 mb-1">Categoria</p>
+                        <p class="text-sm font-medium text-slate-900"><?php echo !empty($medicamento['categoria_nome']) ? htmlspecialchars($medicamento['categoria_nome']) : 'Não informado'; ?></p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-xs text-slate-500 mb-1">Apresentação</p>
+                        <p class="text-sm font-medium text-slate-900">
+                            <?php 
+                            if (!empty($medicamento['unidade_nome'])) {
+                                echo htmlspecialchars($medicamento['unidade_nome']);
+                                if (!empty($medicamento['unidade_sigla'])) {
+                                    echo ' (' . htmlspecialchars($medicamento['unidade_sigla']) . ')';
                                 }
-                                ?>
-                            </span>
-                        </div>
+                            } else {
+                                echo 'Não informado';
+                            }
+                            ?>
+                        </p>
                     </div>
                 </div>
-
-                <!-- Descrição -->
+                
                 <?php if (!empty($medicamento['descricao'])): ?>
-                <div class="glass-card p-4 sm:p-6 space-y-3 sm:space-y-4">
-                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Descrição
-                    </h2>
-                    <p class="text-sm text-slate-600 leading-relaxed"><?php echo nl2br(htmlspecialchars($medicamento['descricao'])); ?></p>
-                </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                        <p class="text-xs text-slate-500 mb-2">Descrição</p>
+                        <p class="text-sm text-slate-600 leading-relaxed"><?php echo nl2br(htmlspecialchars($medicamento['descricao'])); ?></p>
+                    </div>
                 <?php endif; ?>
             </div>
 
@@ -357,7 +295,6 @@ $pageTitle = 'Detalhes do Medicamento';
                                     <th class="px-4 sm:px-6 py-3">Número do Lote</th>
                                     <th class="px-4 sm:px-6 py-3">Recebimento</th>
                                     <th class="px-4 sm:px-6 py-3">Validade</th>
-                                    <th class="px-4 sm:px-6 py-3">Qtd. Inicial</th>
                                     <th class="px-4 sm:px-6 py-3">Qtd. Atual</th>
                                     <th class="px-4 sm:px-6 py-3">Fornecedor</th>
                                     <th class="px-4 sm:px-6 py-3 text-right">Ações</th>
@@ -384,9 +321,6 @@ $pageTitle = 'Detalhes do Medicamento';
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
-                                        </td>
-                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
-                                            <?php echo $lote['quantidade_total']; ?>
                                         </td>
                                         <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <span class="font-semibold <?php echo $lote['quantidade_atual'] <= 0 ? 'text-rose-600' : 'text-emerald-600'; ?>">
@@ -439,10 +373,6 @@ $pageTitle = 'Detalhes do Medicamento';
                                                 <?php echo $lote['dias_para_vencer'] < 0 ? 'Vencido' : $lote['dias_para_vencer'] . ' dias'; ?>
                                             </span>
                                         <?php endif; ?>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500 mb-1">Qtd. Inicial</p>
-                                        <p class="text-sm font-medium text-slate-700"><?php echo $lote['quantidade_total']; ?></p>
                                     </div>
                                     <div>
                                         <p class="text-xs text-slate-500 mb-1">Qtd. Atual</p>

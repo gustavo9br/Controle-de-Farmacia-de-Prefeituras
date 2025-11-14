@@ -18,10 +18,13 @@ $whereClauses = ['1=1'];
 $params = [];
 
 if (!empty($search)) {
-    $whereClauses[] = "(p.nome LIKE ? OR p.cpf LIKE ? OR r.numero_receita LIKE ?)";
+    $whereClauses[] = "(p.nome LIKE ? OR p.cpf LIKE ? OR p.cartao_sus LIKE ? OR REPLACE(p.cartao_sus, ' ', '') LIKE ? OR r.numero_receita LIKE ?)";
     $searchParam = '%' . $search . '%';
+    $searchParamClean = '%' . preg_replace('/[^0-9]/', '', $search) . '%';
     $params[] = $searchParam;
     $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParamClean;
     $params[] = $searchParam;
 }
 

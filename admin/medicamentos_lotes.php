@@ -82,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $sql = "UPDATE lotes SET 
                                 data_recebimento = ?, 
                                 data_validade = ?, 
-                                quantidade_total = quantidade_total + ?,
                                 quantidade_atual = ?,
                                 fornecedor = ?,
                                 nota_fiscal = ?,
@@ -92,20 +91,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $stmt = $conn->prepare($sql);
                         $stmt->execute([
-                            $data_recebimento, $data_validade, $quantidade_total, $nova_quantidade_atual,
+                            $data_recebimento, $data_validade, $nova_quantidade_atual,
                             $fornecedor, $nota_fiscal, $observacoes, $lote_id
                         ]);
                     } else {
                         // 4. Inserir novo lote (ligado ao código de barras)
                         // quantidade_caixas e quantidade_por_caixa não são mais usados (valores padrão 0)
                         $sql = "INSERT INTO lotes (codigo_barras_id, medicamento_id, numero_lote, data_recebimento, data_validade, 
-                                quantidade_total, quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                                quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
                         
                         $stmt = $conn->prepare($sql);
                         $stmt->execute([
                             $codigo_barras_id, $med_id, $numero_lote, $data_recebimento, $data_validade,
-                            $quantidade_total, $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
+                            $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
                         ]);
                     }
                     
@@ -202,14 +201,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // 3. Atualizar lote
                     $sql = "UPDATE lotes SET 
                             codigo_barras_id = ?, numero_lote = ?, data_recebimento = ?, data_validade = ?, 
-                            quantidade_total = ?, quantidade_atual = ?, fornecedor = ?, nota_fiscal = ?, observacoes = ?, 
+                            quantidade_atual = ?, fornecedor = ?, nota_fiscal = ?, observacoes = ?, 
                             atualizado_em = NOW() 
                             WHERE id = ? AND medicamento_id = ?";
                     
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([
                         $codigo_barras_id, $numero_lote, $data_recebimento, $data_validade,
-                        $quantidade_total, $quantidade_atual, $fornecedor, $nota_fiscal, $observacoes,
+                        $quantidade_atual, $fornecedor, $nota_fiscal, $observacoes,
                         $lote_id, $med_id
                     ]);
                     
@@ -545,7 +544,6 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                     <th class="px-6 py-3">Número do Lote</th>
                                     <th class="px-6 py-3">Recebimento</th>
                                     <th class="px-6 py-3">Validade</th>
-                                    <th class="px-6 py-3">Qtd. Total</th>
                                     <th class="px-6 py-3">Qtd. Atual</th>
                                     <th class="px-6 py-3">Fornecedor</th>
                                     <th class="px-6 py-3 text-right">Ações</th>
@@ -587,9 +585,6 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <span class="text-sm text-slate-700 font-medium"><?php echo (int)$lote['quantidade_total']; ?></span>
                                         </td>
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo stockBadgeClass($quantidade_atual); ?>">
@@ -649,8 +644,10 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                         <p class="text-sm text-slate-700"><?php echo htmlspecialchars(formatarData($lote['data_recebimento'])); ?></p>
                                     </div>
                                     <div>
-                                        <p class="text-xs text-slate-500">Qtd. Total</p>
-                                        <p class="text-sm text-slate-700"><?php echo (int)$lote['quantidade_total']; ?></p>
+                                        <p class="text-xs text-slate-500">Qtd. Atual</p>
+                                        <p class="text-sm font-semibold <?php echo $quantidade_atual <= 0 ? 'text-rose-600' : 'text-emerald-600'; ?>">
+                                            <?php echo $quantidade_atual; ?>
+                                        </p>
                                     </div>
                                 </div>
 
@@ -759,21 +756,19 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                         <input type="date" name="data_recebimento" id="data_recebimento" value="<?php echo $lote_edit ? $lote_edit['data_recebimento'] : date('Y-m-d'); ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
                     </div>
                     <div>
-                        <label for="quantidade_total" class="block text-sm font-medium text-slate-700 mb-2">Quantidade (unidades) <span class="text-rose-500">*</span></label>
-                        <input type="number" name="quantidade_total" id="quantidade_total" min="1" value="<?php echo $lote_edit ? (int)$lote_edit['quantidade_total'] : 1; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        <span class="text-xs text-slate-400 mt-1 block">Quantidade sempre em unidades.</span>
-                    </div>
-                    <?php if ($lote_edit): ?>
-                        <div>
+                        <?php if ($lote_edit): ?>
                             <label for="quantidade_atual" class="block text-sm font-medium text-slate-700 mb-2">Qtd. Atual <span class="text-rose-500">*</span></label>
                             <input type="number" name="quantidade_atual" id="quantidade_atual" min="0" value="<?php echo (int)$lote_edit['quantidade_atual']; ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                    <?php else: ?>
-                        <div>
-                            <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
-                            <input type="text" name="fornecedor" id="fornecedor" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['fornecedor']) : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                    <?php endif; ?>
+                        <?php else: ?>
+                            <label for="quantidade_total" class="block text-sm font-medium text-slate-700 mb-2">Quantidade (unidades) <span class="text-rose-500">*</span></label>
+                            <input type="number" name="quantidade_total" id="quantidade_total" min="1" value="1" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                            <span class="text-xs text-slate-400 mt-1 block">Quantidade sempre em unidades.</span>
+                        <?php endif; ?>
+                    </div>
+                    <div>
+                        <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
+                        <input type="text" name="fornecedor" id="fornecedor" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['fornecedor'] ?? '') : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                    </div>
                 </div>
 
                 <div class="grid gap-6 md:grid-cols-2">

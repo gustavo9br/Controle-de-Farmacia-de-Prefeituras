@@ -19,7 +19,6 @@ try {
                 l.numero_lote,
                 l.data_recebimento,
                 l.data_validade,
-                l.quantidade_total,
                 l.quantidade_atual,
                 l.fornecedor,
                 l.nota_fiscal,

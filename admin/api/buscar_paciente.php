@@ -15,6 +15,12 @@ if (empty($query)) {
 
 try {
     // Buscar pacientes por nome, CPF ou cartão SUS
+    // Normalizar query para busca case-insensitive
+    $query_lower = strtolower($query);
+    $query_pattern = '%' . $query . '%';
+    $query_lower_pattern = '%' . $query_lower . '%';
+    $query_clean = '%' . preg_replace('/[^0-9]/', '', $query) . '%';
+    
     if ($medicamento_id > 0) {
         // Contar quantas receitas ativas o paciente tem para o medicamento selecionado
         $sql = "SELECT 
@@ -34,47 +40,89 @@ try {
                 FROM pacientes p
                 WHERE p.ativo = 1
                 AND (
-                    p.nome LIKE :query
+                    LOWER(p.nome) LIKE :query_lower
+                    OR p.nome LIKE :query
                     OR p.cpf LIKE :query
                     OR REPLACE(REPLACE(p.cpf, '.', ''), '-', '') LIKE :query_clean
                     OR p.cartao_sus LIKE :query
                     OR REPLACE(p.cartao_sus, ' ', '') LIKE :query_clean
                 )
-                ORDER BY p.nome ASC
+                ORDER BY 
+                    CASE 
+                        WHEN LOWER(p.nome) LIKE :query_start THEN 1
+                        WHEN LOWER(p.nome) LIKE :query_lower THEN 2
+                        ELSE 3
+                    END,
+                    p.nome ASC
                 LIMIT 15";
         
-        $query_clean = '%' . preg_replace('/[^0-9]/', '', $query) . '%';
+        $query_start = $query_lower . '%';
         $stmt = $conn->prepare($sql);
         $stmt->execute([
-            ':query' => '%' . $query . '%',
+            ':query' => $query_pattern,
+            ':query_lower' => $query_lower_pattern,
+            ':query_start' => $query_start,
             ':query_clean' => $query_clean,
             ':med_id' => $medicamento_id
         ]);
     } else {
         // Busca simples sem filtro de medicamento
-        $sql = "SELECT 
-                    p.id,
-                    p.nome,
-                    p.cpf,
-                    p.cartao_sus
-                FROM pacientes p
-                WHERE p.ativo = 1
-                AND (
-                    p.nome LIKE :query
-                    OR p.cpf LIKE :query
-                    OR REPLACE(REPLACE(p.cpf, '.', ''), '-', '') LIKE :query_clean
-                    OR p.cartao_sus LIKE :query
-                    OR REPLACE(p.cartao_sus, ' ', '') LIKE :query_clean
-                )
-                ORDER BY p.nome ASC
-                LIMIT 15";
+        // Verificar se a query é numérica (CPF/SUS) ou texto (nome)
+        $isNumeric = preg_match('/^[0-9\s\.\-]+$/', $query);
         
-        $query_clean = '%' . preg_replace('/[^0-9]/', '', $query) . '%';
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([
-            ':query' => '%' . $query . '%',
-            ':query_clean' => $query_clean
-        ]);
+        if ($isNumeric) {
+            // Se for numérico, buscar por CPF e SUS
+            $sql = "SELECT 
+                        p.id,
+                        p.nome,
+                        p.cpf,
+                        p.cartao_sus
+                    FROM pacientes p
+                    WHERE p.ativo = 1
+                    AND (
+                        p.cpf LIKE :query
+                        OR REPLACE(REPLACE(p.cpf, '.', ''), '-', '') LIKE :query_clean
+                        OR p.cartao_sus LIKE :query
+                        OR REPLACE(p.cartao_sus, ' ', '') LIKE :query_clean
+                    )
+                    ORDER BY p.nome ASC
+                    LIMIT 15";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                ':query' => $query_pattern,
+                ':query_clean' => $query_clean
+            ]);
+        } else {
+            // Se for texto, buscar principalmente por nome
+            $sql = "SELECT 
+                        p.id,
+                        p.nome,
+                        p.cpf,
+                        p.cartao_sus
+                    FROM pacientes p
+                    WHERE p.ativo = 1
+                    AND (
+                        LOWER(p.nome) LIKE :query_lower
+                        OR p.nome LIKE :query
+                    )
+                    ORDER BY 
+                        CASE 
+                            WHEN LOWER(p.nome) LIKE :query_start THEN 1
+                            WHEN LOWER(p.nome) LIKE :query_lower THEN 2
+                            ELSE 3
+                        END,
+                        p.nome ASC
+                    LIMIT 15";
+            
+            $query_start = $query_lower . '%';
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                ':query' => $query_pattern,
+                ':query_lower' => $query_lower_pattern,
+                ':query_start' => $query_start
+            ]);
+        }
     }
     
     $pacientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
