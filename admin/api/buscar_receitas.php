@@ -19,7 +19,6 @@ try {
                 ri.id,
                 ri.receita_id,
                 ri.quantidade_autorizada,
-                ri.quantidade_retirada,
                 ri.ultima_retirada,
                 ri.intervalo_dias,
                 r.data_validade,
@@ -32,7 +31,7 @@ try {
             AND ri.medicamento_id = :medicamento_id
             AND r.status = 'ativa'
             AND r.data_validade >= CURDATE()
-            AND ri.quantidade_retirada < ri.quantidade_autorizada
+            AND COALESCE((SELECT SUM(quantidade) FROM receitas_retiradas WHERE receita_item_id = ri.id), 0) < ri.quantidade_autorizada
             ORDER BY r.data_validade ASC, ri.id ASC";
     
     $stmt = $conn->prepare($sql);

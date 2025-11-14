@@ -20,6 +20,7 @@ $quantidade = isset($data['quantidade']) ? (int)$data['quantidade'] : 0;
 $observacoes = isset($data['observacoes']) ? trim($data['observacoes']) : '';
 $receita_id = isset($data['receita_id']) ? (int)$data['receita_id'] : 0;
 $paciente_id = isset($data['paciente_id']) ? (int)$data['paciente_id'] : 0;
+$data_planejada = isset($data['data_planejada']) && !empty($data['data_planejada']) ? $data['data_planejada'] : null;
 
 if ($receita_item_id <= 0 || $medicamento_id <= 0 || $lote_id <= 0 || $quantidade <= 0) {
     echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
@@ -32,12 +33,12 @@ $usuario_id = $_SESSION['user_id'];
 try {
     $conn->beginTransaction();
     
-    // 1. Verificar se o item da receita existe e tem quantidade disponível
+    // 1. Verificar se o item da receita existe
     $stmt = $conn->prepare("
         SELECT 
             ri.*,
             r.status as receita_status,
-            (ri.quantidade_autorizada - ri.quantidade_retirada) as quantidade_disponivel
+            COALESCE((SELECT SUM(quantidade) FROM receitas_retiradas WHERE receita_item_id = ri.id), 0) as total_retiradas
         FROM receitas_itens ri
         INNER JOIN receitas r ON r.id = ri.receita_id
         WHERE ri.id = ? AND ri.medicamento_id = ?
@@ -53,8 +54,29 @@ try {
         throw new Exception('Receita não está ativa');
     }
     
-    if ($item['quantidade_disponivel'] < $quantidade) {
-        throw new Exception('Quantidade solicitada maior que a disponível');
+    // Verificar se já atingiu a quantidade autorizada
+    if ($item['total_retiradas'] >= $item['quantidade_autorizada']) {
+        throw new Exception('Quantidade autorizada já foi totalmente retirada');
+    }
+    
+    // Verificar se a quantidade solicitada não excede o autorizado
+    if (($item['total_retiradas'] + $quantidade) > $item['quantidade_autorizada']) {
+        throw new Exception('Quantidade solicitada excede o autorizado na receita');
+    }
+    
+    // Se data_planejada foi fornecida, verificar se já foi dispensada para esta data
+    if ($data_planejada) {
+        $stmtVerificar = $conn->prepare("
+            SELECT COUNT(*) FROM receitas_retiradas 
+            WHERE receita_item_id = ? 
+            AND data_planejada = ?
+        ");
+        $stmtVerificar->execute([$receita_item_id, $data_planejada]);
+        $jaDispensada = $stmtVerificar->fetchColumn() > 0;
+        
+        if ($jaDispensada) {
+            throw new Exception('Esta data já foi dispensada anteriormente');
+        }
     }
     
     // 2. Verificar se o lote existe e tem estoque suficiente
@@ -72,11 +94,12 @@ try {
     // 3. Registrar a retirada na tabela receitas_retiradas
     $stmt = $conn->prepare("
         INSERT INTO receitas_retiradas 
-        (receita_item_id, lote_id, quantidade, usuario_id, observacoes)
-        VALUES (?, ?, ?, ?, ?)
+        (receita_item_id, data_planejada, lote_id, quantidade, usuario_id, observacoes)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([
         $receita_item_id,
+        $data_planejada,
         $lote_id,
         $quantidade,
         $usuario_id,
@@ -85,15 +108,7 @@ try {
     
     $retirada_id = $conn->lastInsertId();
     
-    // 4. Atualizar quantidade retirada no item da receita
-    $stmt = $conn->prepare("
-        UPDATE receitas_itens 
-        SET quantidade_retirada = quantidade_retirada + ?
-        WHERE id = ?
-    ");
-    $stmt->execute([$quantidade, $receita_item_id]);
-    
-    // 5. Atualizar estoque do lote
+    // 4. Atualizar estoque do lote
     $stmt = $conn->prepare("
         UPDATE lotes 
         SET quantidade_atual = quantidade_atual - ?
@@ -101,7 +116,7 @@ try {
     ");
     $stmt->execute([$quantidade, $lote_id]);
     
-    // 6. Atualizar estoque atual do medicamento
+    // 5. Atualizar estoque atual do medicamento
     $stmt = $conn->prepare("
         UPDATE medicamentos 
         SET estoque_atual = estoque_atual - ?
@@ -109,7 +124,7 @@ try {
     ");
     $stmt->execute([$quantidade, $medicamento_id]);
     
-    // 7. Registrar na tabela dispensacoes (histórico geral)
+    // 6. Registrar na tabela dispensacoes (histórico geral)
     $stmt = $conn->prepare("
         INSERT INTO dispensacoes 
         (paciente_id, medicamento_id, lote_id, quantidade, usuario_id, observacoes)
@@ -126,7 +141,7 @@ try {
     
     $dispensacao_id = $conn->lastInsertId();
     
-    // 8. Registrar movimentação de saída
+    // 7. Registrar movimentação de saída
     $stmt = $conn->prepare("
         INSERT INTO movimentacoes 
         (medicamento_id, lote_id, tipo, quantidade, usuario_id, observacoes)
@@ -140,10 +155,13 @@ try {
         'Dispensação receita #' . $receita_id . ' - Paciente: ' . $paciente_id
     ]);
     
-    // 9. Verificar se todos os itens da receita foram totalmente dispensados
+    // 8. Verificar se todos os itens da receita foram totalmente dispensados
     $stmt = $conn->prepare("
-        SELECT COUNT(*) as total,
-               SUM(CASE WHEN quantidade_retirada >= quantidade_autorizada THEN 1 ELSE 0 END) as completos
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN (
+                SELECT COALESCE(SUM(quantidade), 0) FROM receitas_retiradas WHERE receita_item_id = receitas_itens.id
+            ) >= quantidade_autorizada THEN 1 ELSE 0 END) as completos
         FROM receitas_itens
         WHERE receita_id = ?
     ");

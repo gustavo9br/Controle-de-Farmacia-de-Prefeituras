@@ -1,0 +1,53 @@
+{
+  "name": "Gov Farma - Sistema de Gestão de Farmácia",
+  "short_name": "Gov Farma",
+  "description": "Gov Farma - Sistema de gestão de farmácia pública. Controle completo de medicamentos, lotes, pacientes e receitas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["medical", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dispensação",
+      "short_name": "Dispensar",
+      "description": "Nova dispensação de medicamentos",
+      "url": "/admin/index.php",
+      "icons": [
+        {
+          "src": "images/logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Receitas",
+      "short_name": "Receitas",
+      "description": "Gerenciar receitas",
+      "url": "/admin/receitas.php",
+      "icons": [
+        {
+          "src": "images/logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
+

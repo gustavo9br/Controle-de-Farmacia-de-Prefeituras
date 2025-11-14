@@ -252,16 +252,18 @@ $csrfToken = gerarCSRFToken();
     <meta name="author" content="Sistema Farmácia">
     <meta name="robots" content="noindex, nofollow">
     
-    <!-- Open Graph -->
-    <meta property="og:title" content="<?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?>">
-    <meta property="og:description" content="Sistema de gestão de farmácia">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="../images/logo.svg">
+    <?php 
+    $ogTitle = htmlspecialchars($pageTitle) . ' - Gov Farma';
+    $ogDescription = 'Gov Farma - Cadastro e edição de pacientes. Informações completas para gestão farmacêutica.';
+    include '../includes/og_meta.php'; 
+    ?>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="apple-touch-icon" href="../images/logo.svg">
+    
+    <?php include '../includes/pwa_head.php'; ?>
     
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -303,97 +305,73 @@ $csrfToken = gerarCSRFToken();
 <body class="admin-shell">
     <div class="flex min-h-screen">
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
-        <main class="flex-1 px-6 py-10 lg:px-12 space-y-10">
-            <header class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div class="space-y-3">
-                    <nav class="flex items-center gap-2 text-sm text-slate-500">
-                        <a href="pacientes.php" class="hover:text-primary-600 transition">Pacientes</a>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
-                        <span class="text-slate-900 font-medium"><?php echo htmlspecialchars($pageTitle); ?></span>
-                    </nav>
-                    <div>
-                        <h1 class="text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($pageTitle); ?></h1>
-                        <p class="mt-2 text-slate-500 max-w-2xl">Preencha os dados do paciente. Campos marcados com * são obrigatórios.</p>
-                    </div>
+        <main class="content-area">
+            <div class="space-y-6">
+            <header class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h1 class="text-2xl lg:text-3xl font-bold text-slate-900"><?php echo htmlspecialchars($pageTitle); ?></h1>
+                    <p class="mt-1 text-sm text-slate-500">Campos marcados com * são obrigatórios.</p>
+                </div>
+                <div class="flex gap-3">
+                    <a href="pacientes.php" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-slate-600 font-semibold shadow hover:shadow-lg transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Cancelar
+                    </a>
+                    <button type="submit" form="formPaciente" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-2.5 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>
+                        <?php echo $isEdit ? 'Atualizar' : 'Cadastrar'; ?>
+                    </button>
                 </div>
             </header>
 
             <?php if (!empty($errorMessage)): ?>
-                <div class="glass-card border border-rose-200/60 bg-rose-50/80 px-6 py-4 text-rose-700">
-                    <strong class="block text-sm font-semibold">Atenção</strong>
-                    <span class="text-sm"><?php echo $errorMessage; ?></span>
+                <div class="glass-card border border-rose-200/60 bg-rose-50/80 px-4 py-3 text-rose-700 text-sm">
+                    <strong class="block font-semibold mb-1">Atenção</strong>
+                    <span><?php echo $errorMessage; ?></span>
                 </div>
             <?php endif; ?>
 
-            <form method="post" class="space-y-6">
+            <form method="post" id="formPaciente" class="glass-card p-5 space-y-4">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                 
-                <section class="glass-card p-6 lg:p-8 space-y-6">
-                    <h2 class="text-lg font-semibold text-slate-900 border-b border-white/60 pb-3">Dados pessoais</h2>
-                    
-                    <div class="grid gap-6 lg:grid-cols-2">
-                        <div class="lg:col-span-2">
-                            <label for="nome" class="text-sm font-medium text-slate-700">Nome completo <span class="text-rose-500">*</span></label>
-                            <input type="text" name="nome" id="nome" value="<?php echo htmlspecialchars($paciente['nome']); ?>" required maxlength="255" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Ex.: João da Silva">
-                        </div>
-                        
-                        <div>
-                            <label for="data_nascimento" class="text-sm font-medium text-slate-700">Data de nascimento <span class="text-rose-500">*</span></label>
-                            <input type="date" name="data_nascimento" id="data_nascimento" value="<?php echo htmlspecialchars($paciente['data_nascimento']); ?>" required max="<?php echo date('Y-m-d'); ?>" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-
-                        <div>
-                            <label for="sexo" class="text-sm font-medium text-slate-700">Sexo <span class="text-rose-500">*</span></label>
-                            <select name="sexo" id="sexo" required class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
-                                <option value="">Selecione...</option>
-                                <option value="M" <?php echo $paciente['sexo'] === 'M' ? 'selected' : ''; ?>>Masculino</option>
-                                <option value="F" <?php echo $paciente['sexo'] === 'F' ? 'selected' : ''; ?>>Feminino</option>
-                                <option value="Outro" <?php echo $paciente['sexo'] === 'Outro' ? 'selected' : ''; ?>>Outro</option>
-                            </select>
-                        </div>
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <div class="lg:col-span-2">
+                        <label for="nome" class="block text-sm font-semibold text-slate-700 mb-1">Nome completo <span class="text-rose-500">*</span></label>
+                        <input type="text" name="nome" id="nome" value="<?php echo htmlspecialchars($paciente['nome'] ?? ''); ?>" required maxlength="255" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500" placeholder="Ex.: João da Silva">
                     </div>
-                </section>
-
-                <section class="glass-card p-6 lg:p-8 space-y-6">
-                    <h2 class="text-lg font-semibold text-slate-900 border-b border-white/60 pb-3">Documentos</h2>
-                    <p class="text-sm text-slate-500">Pelo menos um dos documentos (CPF ou Cartão SUS) é recomendado para identificação única do paciente.</p>
-                    
-                    <div class="grid gap-6 lg:grid-cols-2">
-                        <div>
-                            <label for="cpf" class="text-sm font-medium text-slate-700">CPF</label>
-                            <input type="text" name="cpf" id="cpf" value="<?php echo htmlspecialchars($paciente['cpf']); ?>" maxlength="14" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="000.000.000-00">
-                            <p class="mt-1 text-xs text-slate-400">Apenas números</p>
-                        </div>
-
-                        <div>
-                            <label for="cartao_sus" class="text-sm font-medium text-slate-700">Cartão SUS</label>
-                            <input type="text" name="cartao_sus" id="cartao_sus" value="<?php echo htmlspecialchars($paciente['cartao_sus']); ?>" maxlength="18" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="000 0000 0000 0000">
-                            <p class="mt-1 text-xs text-slate-400">15 dígitos</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="glass-card p-6 lg:p-8 space-y-6">
-                    <h2 class="text-lg font-semibold text-slate-900 border-b border-white/60 pb-3">Observações</h2>
                     
                     <div>
-                        <label for="observacoes" class="text-sm font-medium text-slate-700">Observações adicionais</label>
-                        <textarea name="observacoes" id="observacoes" rows="4" maxlength="1000" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Informações adicionais sobre o paciente, alergias, restrições, etc."><?php echo htmlspecialchars($paciente['observacoes']); ?></textarea>
-                        <p class="mt-1 text-xs text-slate-400">Máximo de 1000 caracteres</p>
+                        <label for="data_nascimento" class="block text-sm font-semibold text-slate-700 mb-1">Data de nascimento <span class="text-rose-500">*</span></label>
+                        <input type="date" name="data_nascimento" id="data_nascimento" value="<?php echo htmlspecialchars($paciente['data_nascimento'] ?? ''); ?>" required max="<?php echo date('Y-m-d'); ?>" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500">
                     </div>
-                </section>
 
-                <div class="flex flex-wrap gap-3">
-                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-8 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>
-                        <?php echo $isEdit ? 'Atualizar paciente' : 'Cadastrar paciente'; ?>
-                    </button>
-                    <a href="pacientes.php" class="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 text-slate-600 font-semibold shadow hover:shadow-lg transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                        Cancelar
-                    </a>
+                    <div>
+                        <label for="sexo" class="block text-sm font-semibold text-slate-700 mb-1">Sexo <span class="text-rose-500">*</span></label>
+                        <select name="sexo" id="sexo" required class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500">
+                            <option value="">Selecione...</option>
+                            <option value="M" <?php echo $paciente['sexo'] === 'M' ? 'selected' : ''; ?>>Masculino</option>
+                            <option value="F" <?php echo $paciente['sexo'] === 'F' ? 'selected' : ''; ?>>Feminino</option>
+                            <option value="Outro" <?php echo $paciente['sexo'] === 'Outro' ? 'selected' : ''; ?>>Outro</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="cpf" class="block text-sm font-semibold text-slate-700 mb-1">CPF</label>
+                        <input type="text" name="cpf" id="cpf" value="<?php echo htmlspecialchars($paciente['cpf'] ?? ''); ?>" maxlength="14" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500" placeholder="000.000.000-00">
+                    </div>
+
+                    <div>
+                        <label for="cartao_sus" class="block text-sm font-semibold text-slate-700 mb-1">Cartão SUS</label>
+                        <input type="text" name="cartao_sus" id="cartao_sus" value="<?php echo htmlspecialchars($paciente['cartao_sus'] ?? ''); ?>" maxlength="18" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500" placeholder="000 0000 0000 0000">
+                    </div>
+
+                    <div class="lg:col-span-2">
+                        <label for="observacoes" class="block text-sm font-semibold text-slate-700 mb-1">Observações</label>
+                        <textarea name="observacoes" id="observacoes" rows="3" maxlength="1000" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 resize-none" placeholder="Informações adicionais sobre o paciente, alergias, restrições, etc."><?php echo htmlspecialchars($paciente['observacoes'] ?? ''); ?></textarea>
+                    </div>
                 </div>
             </form>
+            </div>
         </main>
     </div>
 
@@ -436,7 +414,7 @@ $csrfToken = gerarCSRFToken();
         // Máscara e validação para CPF
         const cpfInput = document.getElementById('cpf');
         const cpfFeedback = document.createElement('span');
-        cpfFeedback.className = 'text-xs mt-1';
+        cpfFeedback.className = 'text-xs mt-1 block';
         cpfInput.parentElement.appendChild(cpfFeedback);
 
         cpfInput.addEventListener('input', function(e) {
@@ -471,7 +449,7 @@ $csrfToken = gerarCSRFToken();
         });
 
         // Validação ao submeter o formulário
-        document.querySelector('form').addEventListener('submit', function(e) {
+        document.getElementById('formPaciente').addEventListener('submit', function(e) {
             const cpfValue = cpfInput.value.replace(/\D/g, '');
             if (cpfValue.length > 0 && cpfValue.length === 11 && !validarCPF(cpfValue)) {
                 e.preventDefault();

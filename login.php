@@ -81,27 +81,29 @@ $csrf_token = gerarCSRFToken();
     <meta name="robots" content="noindex, nofollow">
     
     <!-- Open Graph -->
-    <meta property="og:title" content="Login - <?php echo SYSTEM_NAME; ?>">
-    <meta property="og:description" content="Sistema de gestão de farmácia da Prefeitura de Laje.">
+    <meta property="og:title" content="Login - Gov Farma">
+    <meta property="og:description" content="Gov Farma - Sistema de gestão de farmácia pública. Controle completo de medicamentos, pacientes, receitas e dispensação.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://farmacia.laje.app/login.php">
     <meta property="og:image" content="https://farmacia.laje.app/images/logo.png">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="512">
     <meta property="og:image:height" content="512">
-    <meta property="og:site_name" content="Farmácia de Laje">
+    <meta property="og:site_name" content="Gov Farma">
     <meta property="og:locale" content="pt_BR">
     
     <!-- Twitter / WhatsApp -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Login - <?php echo SYSTEM_NAME; ?>">
-    <meta name="twitter:description" content="Sistema de gestão de farmácia da Prefeitura de Laje.">
+    <meta name="twitter:title" content="Login - Gov Farma">
+    <meta name="twitter:description" content="Gov Farma - Sistema de gestão de farmácia pública. Controle completo de medicamentos, pacientes, receitas e dispensação.">
     <meta name="twitter:image" content="https://farmacia.laje.app/images/logo.png">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="images/logo.svg">
     <link rel="shortcut icon" type="image/svg+xml" href="images/logo.svg">
     <link rel="apple-touch-icon" href="images/logo.svg">
+    
+    <?php include 'includes/pwa_head.php'; ?>
     
     <title>Login - <?php echo SYSTEM_NAME; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -188,7 +190,7 @@ $csrf_token = gerarCSRFToken();
                         <img src="images/logo.svg" alt="Logo Farmácia" style="width: 80px; height: 80px;">
                     </div>
                     
-                    <h1 class="login-title">Farmácia de Laje</h1>
+                    <h1 class="login-title">Gov Farma</h1>
                     
                     <?php if (!empty($error)): ?>
                         <div class="alert alert-danger" role="alert">

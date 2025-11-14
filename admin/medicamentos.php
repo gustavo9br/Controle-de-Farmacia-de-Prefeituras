@@ -179,16 +179,18 @@ $pageTitle = 'Medicamentos cadastrados';
     <meta name="author" content="Sistema Farmácia">
     <meta name="robots" content="noindex, nofollow">
     
-    <!-- Open Graph -->
-    <meta property="og:title" content="<?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?>">
-    <meta property="og:description" content="Sistema de gestão de farmácia">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="../images/logo.svg">
+    <?php 
+    $ogTitle = htmlspecialchars($pageTitle) . ' - Gov Farma';
+    $ogDescription = 'Gov Farma - Cadastro e gestão de medicamentos. Controle de estoque, lotes e códigos de barras.';
+    include '../includes/og_meta.php'; 
+    ?>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="apple-touch-icon" href="../images/logo.svg">
+    
+    <?php include '../includes/pwa_head.php'; ?>
     
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -234,7 +236,8 @@ $pageTitle = 'Medicamentos cadastrados';
     <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
     <div class="flex min-h-screen">
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
-        <main class="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-12 lg:py-10 space-y-6 lg:space-y-10">
+        <main class="content-area">
+            <div class="space-y-10">
             <header class="flex flex-col gap-4 lg:gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div class="space-y-2 sm:space-y-3">
                     <span class="text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-500">Medicamentos</span>
@@ -243,21 +246,19 @@ $pageTitle = 'Medicamentos cadastrados';
                         <p class="mt-2 text-sm sm:text-base text-slate-500 max-w-2xl">Consulte o catálogo institucional, monitore estoque e acompanhe a validade dos lotes vinculados.</p>
                     </div>
                 </div>
-                <div class="flex flex-col gap-3 lg:items-end w-full lg:w-auto">
-                    <span class="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-500 shadow">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
+                <div class="flex flex-col gap-3 lg:items-end">
+                    <span class="inline-flex items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm text-slate-500 shadow">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
                         <?php echo number_format($totalRecords, 0, ',', '.'); ?> medicamentos cadastrados
                     </span>
-                    <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3 w-full sm:w-auto">
-                        <a href="medicamentos_form.php" class="inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold shadow-glow hover:bg-primary-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
-                            <span class="hidden sm:inline">Cadastrar medicamento</span>
-                            <span class="sm:hidden">Novo medicamento</span>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="medicamentos_form.php" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
+                            Cadastrar medicamento
                         </a>
-                        <a href="lotes.php" class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base text-primary-600 font-semibold shadow hover:shadow-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 7.5h16.5M3.75 12h16.5M3.75 16.5h16.5"/></svg>
-                            <span class="hidden sm:inline">Ver todos os lotes</span>
-                            <span class="sm:hidden">Lotes</span>
+                        <a href="lotes.php" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-primary-600 font-semibold shadow hover:shadow-lg transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 7.5h16.5M3.75 12h16.5M3.75 16.5h16.5"/></svg>
+                            Ver todos os lotes
                         </a>
                     </div>
                 </div>
@@ -434,6 +435,7 @@ $pageTitle = 'Medicamentos cadastrados';
                 <?php endif; ?>
                 </div>
             </section>
+            </div>
         </main>
     </div>
 

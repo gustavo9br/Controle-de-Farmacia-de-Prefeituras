@@ -29,7 +29,7 @@ try {
                      AND r.status = 'ativa'
                      AND r.data_validade >= CURDATE()
                      AND ri.medicamento_id = :med_id
-                     AND ri.quantidade_retirada < ri.quantidade_autorizada
+                     AND COALESCE((SELECT SUM(quantidade) FROM receitas_retiradas WHERE receita_item_id = ri.id), 0) < ri.quantidade_autorizada
                     ) as receitas_ativas
                 FROM pacientes p
                 WHERE p.ativo = 1

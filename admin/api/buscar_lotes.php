@@ -35,7 +35,7 @@ try {
         
         $stmt->execute([$medicamento_id, $codigo_barras_id]);
     } else {
-        // Buscar todos os lotes do medicamento
+        // Buscar todos os lotes do medicamento (apenas com estoque)
         $stmt = $db->prepare("
             SELECT 
                 l.id,

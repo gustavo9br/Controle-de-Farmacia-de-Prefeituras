@@ -249,6 +249,8 @@ $csrfToken = gerarCSRFToken();
     <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="apple-touch-icon" href="../images/logo.svg">
     
+    <?php include '../includes/pwa_head.php'; ?>
+    
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -284,7 +286,8 @@ $csrfToken = gerarCSRFToken();
     <div class="flex min-h-screen">
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
         
-        <main class="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-12 lg:py-10 space-y-6 lg:space-y-8">
+        <main class="content-area">
+            <div class="space-y-10">
             <!-- Header -->
             <header>
                 <div class="space-y-2 sm:space-y-3">
@@ -453,6 +456,7 @@ $csrfToken = gerarCSRFToken();
                         </p>
                     </div>
                 </div>
+            </div>
             </div>
         </main>
     </div>

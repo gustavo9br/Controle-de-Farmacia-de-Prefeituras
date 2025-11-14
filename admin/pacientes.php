@@ -148,16 +148,18 @@ $pageTitle = 'Pacientes cadastrados';
     <meta name="author" content="Sistema Farmácia">
     <meta name="robots" content="noindex, nofollow">
     
-    <!-- Open Graph -->
-    <meta property="og:title" content="<?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?>">
-    <meta property="og:description" content="Sistema de gestão de farmácia">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="../images/logo.svg">
+    <?php 
+    $ogTitle = htmlspecialchars($pageTitle) . ' - Gov Farma';
+    $ogDescription = 'Gov Farma - Cadastro e gestão de pacientes. Histórico completo de dispensações e receitas.';
+    include '../includes/og_meta.php'; 
+    ?>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="apple-touch-icon" href="../images/logo.svg">
+    
+    <?php include '../includes/pwa_head.php'; ?>
     
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -283,7 +285,7 @@ $pageTitle = 'Pacientes cadastrados';
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white/80">
                                 <?php foreach ($pacientes as $paciente): ?>
-                                    <tr class="text-sm text-slate-600">
+                                    <tr class="text-sm text-slate-600 hover:bg-blue-50/50 transition-colors cursor-pointer" onclick="window.location.href='paciente_historico.php?id=<?php echo (int)$paciente['id']; ?>'" title="Clique para ver o histórico do paciente">
                                         <td class="px-6 py-4">
                                             <div class="flex flex-col">
                                                 <span class="font-semibold text-slate-900"><?php echo htmlspecialchars($paciente['nome']); ?></span>
@@ -309,17 +311,17 @@ $pageTitle = 'Pacientes cadastrados';
                                                 <?php echo htmlspecialchars(sexoLabel($paciente['sexo'])); ?>
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-6 py-4" onclick="event.stopPropagation();">
                                             <div class="flex items-center justify-end gap-2">
-                                                <a href="pacientes_form.php?id=<?php echo (int)$paciente['id']; ?>" class="action-chip" title="Editar paciente">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                                                <a href="pacientes_form.php?id=<?php echo (int)$paciente['id']; ?>" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm hover:shadow-md" title="Editar paciente">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687 1.688a1.875 1.875 0 102.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
                                                 </a>
-                                                <form method="post" class="inline" onsubmit="return confirm('Confirma a exclusão do paciente <?php echo htmlspecialchars($paciente['nome'], ENT_QUOTES); ?>? Esta ação não poderá ser desfeita.');">
+                                                <form method="post" class="inline" onsubmit="event.stopPropagation(); return confirm('Confirma a exclusão do paciente <?php echo htmlspecialchars($paciente['nome'], ENT_QUOTES); ?>? Esta ação não poderá ser desfeita.');">
                                                     <input type="hidden" name="delete_paciente" value="1">
                                                     <input type="hidden" name="paciente_id" value="<?php echo (int)$paciente['id']; ?>">
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                                    <button type="submit" class="action-chip danger" title="Excluir paciente">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
+                                                    <button type="submit" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all shadow-sm hover:shadow-md" title="Excluir paciente">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                                                     </button>
                                                 </form>
                                             </div>
@@ -333,7 +335,7 @@ $pageTitle = 'Pacientes cadastrados';
                     <!-- Mobile cards -->
                     <div class="lg:hidden divide-y divide-slate-100">
                         <?php foreach ($pacientes as $paciente): ?>
-                            <div class="p-5 bg-white/80 space-y-3">
+                            <div class="p-5 bg-white/80 space-y-3 hover:bg-blue-50/50 transition-colors cursor-pointer" onclick="window.location.href='paciente_historico.php?id=<?php echo (int)$paciente['id']; ?>'" title="Clique para ver o histórico do paciente">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <p class="text-xs text-slate-500 uppercase tracking-wide">Nome</p>
@@ -372,17 +374,17 @@ $pageTitle = 'Pacientes cadastrados';
                                     </div>
                                 <?php endif; ?>
 
-                                <div class="flex gap-2 pt-2 border-t border-slate-100">
-                                    <a href="pacientes_form.php?id=<?php echo (int)$paciente['id']; ?>" class="action-chip flex-1 justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                                <div class="flex gap-2 pt-2 border-t border-slate-100" onclick="event.stopPropagation();">
+                                    <a href="pacientes_form.php?id=<?php echo (int)$paciente['id']; ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687 1.688a1.875 1.875 0 102.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
                                         Editar
                                     </a>
-                                    <form method="post" class="flex-1" onsubmit="return confirm('Confirma a exclusão do paciente?');">
+                                    <form method="post" class="flex-1" onsubmit="event.stopPropagation(); return confirm('Confirma a exclusão do paciente?');">
                                         <input type="hidden" name="delete_paciente" value="1">
                                         <input type="hidden" name="paciente_id" value="<?php echo (int)$paciente['id']; ?>">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                        <button type="submit" class="action-chip danger w-full justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
+                                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                                             Excluir
                                         </button>
                                     </form>
@@ -541,7 +543,7 @@ $pageTitle = 'Pacientes cadastrados';
                         <tbody class="divide-y divide-slate-100 bg-white/80">
                             ${pacientes.map(paciente => {
                                 return `
-                                    <tr class="text-sm text-slate-600">
+                                    <tr class="text-sm text-slate-600 hover:bg-blue-50/50 transition-colors cursor-pointer" onclick="window.location.href='paciente_historico.php?id=${paciente.id}'" title="Clique para ver o histórico do paciente">
                                         <td class="px-6 py-4">
                                             <div class="flex flex-col">
                                                 <span class="font-semibold text-slate-900">${paciente.nome}</span>
@@ -564,10 +566,10 @@ $pageTitle = 'Pacientes cadastrados';
                                                 ${sexoLabel(paciente.sexo)}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-6 py-4" onclick="event.stopPropagation();">
                                             <div class="flex items-center justify-end gap-2">
-                                                <a href="pacientes_form.php?id=${paciente.id}" class="action-chip" title="Editar paciente">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                                                <a href="pacientes_form.php?id=${paciente.id}" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm hover:shadow-md" title="Editar paciente">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687 1.688a1.875 1.875 0 102.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
                                                 </a>
                                             </div>
                                         </td>

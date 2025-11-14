@@ -15,21 +15,33 @@ $pageTitle = "Dispensação de Medicamentos";
     <meta name="robots" content="noindex, nofollow">
     
     <!-- Open Graph -->
-    <meta property="og:title" content="<?php echo $pageTitle; ?> - Farmácia Popular">
-    <meta property="og:description" content="Sistema de gestão de farmácia">
+    <meta property="og:title" content="<?php echo $pageTitle; ?> - Gov Farma">
+    <meta property="og:description" content="Gov Farma - Sistema de gestão de farmácia pública. Dispensação de medicamentos com controle completo de lotes e pacientes.">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="../images/logo.svg">
+    <meta property="og:url" content="https://farmacia.laje.app/admin/index.php">
+    <meta property="og:image" content="https://farmacia.laje.app/images/logo.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:site_name" content="Gov Farma">
+    <meta property="og:locale" content="pt_BR">
+    
+    <!-- Twitter / WhatsApp -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo $pageTitle; ?> - Gov Farma">
+    <meta name="twitter:description" content="Gov Farma - Sistema de gestão de farmácia pública. Dispensação de medicamentos com controle completo de lotes e pacientes.">
+    <meta name="twitter:image" content="https://farmacia.laje.app/images/logo.png">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="apple-touch-icon" href="../images/logo.svg">
     
-    <title><?php echo $pageTitle; ?> - Farmácia Popular</title>
+    <?php include '../includes/pwa_head.php'; ?>
+    
+    <title><?php echo $pageTitle; ?> - Gov Farma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../css/admin_new.css">
 </head>
-<body class="admin-shell bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 min-h-screen">
+<body class="admin-shell min-h-screen">
     
     <?php include 'includes/sidebar.php'; ?>
 
@@ -56,9 +68,18 @@ $pageTitle = "Dispensação de Medicamentos";
             <!-- COLUNA ESQUERDA: NOME DO PACIENTE -->
             <div class="space-y-4">
                 <div class="glass-card p-4">
-                    <h3 class="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                        <span>👤</span> Nome do Paciente
-                    </h3>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-base font-semibold text-gray-800 flex items-center gap-2">
+                            <span>👤</span> Nome do Paciente
+                        </h3>
+                        <a 
+                            href="pacientes_form.php" 
+                            class="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg text-xs font-medium transition-all shadow-md flex items-center gap-1"
+                            title="Adicionar novo paciente"
+                        >
+                            <span>+</span> Novo
+                        </a>
+                    </div>
                     
                     <div class="relative">
                         <input 

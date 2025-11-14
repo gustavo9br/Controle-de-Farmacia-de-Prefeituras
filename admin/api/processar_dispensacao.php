@@ -163,7 +163,12 @@ try {
             throw new Exception('Receita vencida');
         }
         
-        $quantidade_disponivel = $receita_item['quantidade_autorizada'] - $receita_item['quantidade_retirada'];
+        // Verificar quantidade já retirada
+        $stmt = $conn->prepare("SELECT COALESCE(SUM(quantidade), 0) FROM receitas_retiradas WHERE receita_item_id = ?");
+        $stmt->execute([$receita_item_id]);
+        $total_retiradas = $stmt->fetchColumn();
+        
+        $quantidade_disponivel = $receita_item['quantidade_autorizada'] - $total_retiradas;
         
         if ($quantidade > $quantidade_disponivel) {
             throw new Exception("Quantidade excede o autorizado na receita. Disponível: $quantidade_disponivel");
@@ -178,25 +183,24 @@ try {
             }
         }
         
-        // Atualizar quantidade retirada
-        $nova_quantidade_retirada = $receita_item['quantidade_retirada'] + $quantidade;
+        // Atualizar última retirada
         $stmt = $conn->prepare("
             UPDATE receitas_itens 
-            SET quantidade_retirada = ?, 
-                ultima_retirada = CURDATE(),
+            SET ultima_retirada = CURDATE(),
                 atualizado_em = NOW()
             WHERE id = ?
         ");
-        $stmt->execute([$nova_quantidade_retirada, $receita_item_id]);
+        $stmt->execute([$receita_item_id]);
         
-        // Se completou a receita deste item, verificar se todos os itens foram concluídos
+        // Verificar se completou a receita deste item
+        $nova_quantidade_retirada = $total_retiradas + $quantidade;
         if ($nova_quantidade_retirada >= $receita_item['quantidade_autorizada']) {
             // Verificar se todos os itens da receita foram concluídos
             $stmt = $conn->prepare("
                 SELECT COUNT(*) as pendentes
                 FROM receitas_itens
                 WHERE receita_id = ?
-                AND quantidade_retirada < quantidade_autorizada
+                AND COALESCE((SELECT SUM(quantidade) FROM receitas_retiradas WHERE receita_item_id = receitas_itens.id), 0) < quantidade_autorizada
             ");
             $stmt->execute([$receita_item['receita_id']]);
             $pendentes = $stmt->fetchColumn();

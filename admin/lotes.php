@@ -110,6 +110,11 @@ if ($filter_status == 1) {
     $whereClauses[] = "l.quantidade_atual = 0";
 }
 
+// Por padrão, mostrar apenas lotes com estoque (quantidade_atual > 0)
+if ($filter_status == 0) {
+    $whereClauses[] = "l.quantidade_atual > 0";
+}
+
 $whereClause = $whereClauses ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
 
 try {
@@ -228,6 +233,8 @@ $pageTitle = 'Gerenciamento de lotes';
     <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="apple-touch-icon" href="../images/logo.svg">
     
+    <?php include '../includes/pwa_head.php'; ?>
+    
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -282,11 +289,15 @@ $pageTitle = 'Gerenciamento de lotes';
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
                         <?php echo number_format($totalRecords, 0, ',', '.'); ?> lotes cadastrados
                     </span>
-                    <div class="flex flex-wrap gap-3">
+                    <div class="flex flex-wrap gap-3 justify-end">
                         <button onclick="document.getElementById('addLoteModal').classList.remove('hidden'); document.getElementById('codigo_barras_scanner').focus();" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
                             Adicionar Lote
                         </button>
+                        <a href="lotes_zerados.php" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-gray-600 font-semibold shadow hover:shadow-lg transition border border-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5m16 0h-2.586a1 1 0 0 0-.707.293l-2.414 2.414a1 1 0 0 1-.707.293h-3.172a1 1 0 0 1-.707-.293l-2.414-2.414A1 1 0 0 0 6.586 13H4"/></svg>
+                            Lotes Zerados
+                        </a>
                         <a href="relatorios.php?tipo=vencimento" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-amber-600 font-semibold shadow hover:shadow-lg transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9z"/></svg>
                             Controle de validades

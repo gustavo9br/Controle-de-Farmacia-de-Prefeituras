@@ -16,6 +16,7 @@ if (!$data) {
 }
 
 $paciente_id = (int)($data['paciente_id'] ?? 0);
+$tipo_receita = trim($data['tipo_receita'] ?? 'azul');
 $numero_receita = trim($data['numero_receita'] ?? '');
 $data_emissao = trim($data['data_emissao'] ?? '');
 $data_validade = trim($data['data_validade'] ?? '');
@@ -24,11 +25,18 @@ $quantidade_por_retirada = (int)($data['quantidade_por_retirada'] ?? 0);
 $numero_retiradas = (int)($data['numero_retiradas'] ?? 0);
 $intervalo_dias = (int)($data['intervalo_dias'] ?? 30);
 $observacoes = trim($data['observacoes'] ?? '');
+$datas_planejadas = $data['datas_planejadas'] ?? [];
 $usuario_id = (int)$_SESSION['user_id'];
 
 // Validações
-if (empty($paciente_id) || empty($numero_receita) || empty($data_emissao) || empty($data_validade)) {
+if (empty($paciente_id) || empty($data_emissao) || empty($data_validade)) {
     echo json_encode(['success' => false, 'message' => 'Dados obrigatórios não informados']);
+    exit;
+}
+
+// Se for receita azul, número é obrigatório
+if ($tipo_receita === 'azul' && empty($numero_receita)) {
+    echo json_encode(['success' => false, 'message' => 'Número da receita azul é obrigatório']);
     exit;
 }
 
@@ -45,19 +53,29 @@ if ($numero_retiradas > 12) {
 try {
     $conn->beginTransaction();
     
-    // Verificar se número de receita já existe
-    $stmt = $conn->prepare("SELECT id FROM receitas WHERE numero_receita = ?");
-    $stmt->execute([$numero_receita]);
-    if ($stmt->fetch()) {
-        throw new Exception('Número de receita já existe');
+    // Gerar número automático para receita branca
+    if ($tipo_receita === 'branca') {
+        // Buscar o último número de receita branca
+        $stmt = $conn->prepare("SELECT MAX(CAST(numero_receita AS UNSIGNED)) as ultimo_numero FROM receitas WHERE tipo_receita = 'branca' AND numero_receita REGEXP '^[0-9]+$'");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $ultimoNumero = $result['ultimo_numero'] ?? 0;
+        $numero_receita = (string)($ultimoNumero + 1);
+    } else {
+        // Verificar se número de receita azul já existe
+        $stmt = $conn->prepare("SELECT id FROM receitas WHERE numero_receita = ? AND tipo_receita = 'azul'");
+        $stmt->execute([$numero_receita]);
+        if ($stmt->fetch()) {
+            throw new Exception('Número de receita azul já existe');
+        }
     }
     
     // 1. Inserir receita
     $stmt = $conn->prepare("
-        INSERT INTO receitas (paciente_id, numero_receita, data_emissao, data_validade, observacoes, status)
-        VALUES (?, ?, ?, ?, ?, 'ativa')
+        INSERT INTO receitas (paciente_id, tipo_receita, numero_receita, data_emissao, data_validade, observacoes, status)
+        VALUES (?, ?, ?, ?, ?, ?, 'ativa')
     ");
-    $stmt->execute([$paciente_id, $numero_receita, $data_emissao, $data_validade, $observacoes ?: null]);
+    $stmt->execute([$paciente_id, $tipo_receita, $numero_receita, $data_emissao, $data_validade, $observacoes ?: null]);
     $receita_id = $conn->lastInsertId();
     
     // 2. Criar os itens da receita (múltiplas retiradas do mesmo medicamento)
@@ -70,11 +88,10 @@ try {
                 receita_id, 
                 medicamento_id, 
                 quantidade_autorizada, 
-                quantidade_retirada, 
                 intervalo_dias,
                 observacoes
             )
-            VALUES (?, ?, ?, 0, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
         ");
         
         $obs_item = "Retirada " . ($i + 1) . " de " . $numero_retiradas;
@@ -85,6 +102,28 @@ try {
             $intervalo_dias,
             $obs_item
         ]);
+        
+        $receita_item_id = $conn->lastInsertId();
+        
+        // Salvar data planejada se fornecida
+        if (isset($datas_planejadas[$i])) {
+            $data_planejada = $datas_planejadas[$i];
+            $stmt = $conn->prepare("
+                INSERT INTO receitas_retiradas_planejadas (
+                    receita_item_id,
+                    numero_retirada,
+                    data_planejada,
+                    quantidade_planejada
+                )
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $receita_item_id,
+                $data_planejada['numero_retirada'],
+                $data_planejada['data_planejada'],
+                $data_planejada['quantidade_planejada']
+            ]);
+        }
     }
     
     $conn->commit();

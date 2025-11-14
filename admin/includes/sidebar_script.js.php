@@ -8,7 +8,9 @@ const overlay = document.getElementById('sidebarOverlay');
 
 // Desktop: Toggle collapse
 if (sidebarToggle) {
-    sidebarToggle.addEventListener('click', () => {
+    sidebarToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         sidebar.classList.toggle('collapsed');
         document.body.classList.toggle('sidebar-collapsed');
 

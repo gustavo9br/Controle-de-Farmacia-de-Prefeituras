@@ -140,6 +140,9 @@ $csrfToken = gerarCSRFToken();
     <meta property="og:type" content="website">
     <meta property="og:image" content="../images/logo.svg">
     <link rel="icon" type="image/svg+xml" href="../images/logo.svg">
+    
+    <?php include '../includes/pwa_head.php'; ?>
+    
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -174,7 +177,8 @@ $csrfToken = gerarCSRFToken();
     <div class="flex min-h-screen">
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
 
-        <main class="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-12 lg:py-10 space-y-6 lg:space-y-8">
+        <main class="content-area">
+            <div class="space-y-10">
             <header>
                 <div class="space-y-2 sm:space-y-3">
                     <span class="text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-500">Administração</span>
@@ -355,6 +359,7 @@ $csrfToken = gerarCSRFToken();
                     </div>
                 </div>
             </section>
+            </div>
         </main>
     </div>
 

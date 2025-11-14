@@ -4,10 +4,10 @@
  */
 
 // Informações básicas do sistema
-define('SYSTEM_NAME', 'Farmácia - Controle de Estoque');
+define('SYSTEM_NAME', 'Gov Farma');
 define('SYSTEM_VERSION', '1.0.0');
-define('COMPANY_NAME', 'Farmácia');
-define('COMPANY_SITE', 'https://farmacia.gustavo.uk');
+define('COMPANY_NAME', 'Gov Farma');
+define('COMPANY_SITE', 'https://farmacia.laje.app');
 
 // Configurações de diretórios
 define('ROOT_PATH', realpath(dirname(__FILE__) . '/..'));

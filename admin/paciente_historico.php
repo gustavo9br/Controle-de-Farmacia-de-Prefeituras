@@ -26,7 +26,7 @@ try {
     // Buscar receitas ativas
     $stmt = $conn->prepare("
         SELECT r.*, COUNT(ri.id) as total_itens,
-               SUM(CASE WHEN ri.quantidade_retirada < ri.quantidade_autorizada THEN 1 ELSE 0 END) as itens_pendentes
+               SUM(CASE WHEN COALESCE((SELECT SUM(quantidade) FROM receitas_retiradas WHERE receita_item_id = ri.id), 0) < ri.quantidade_autorizada THEN 1 ELSE 0 END) as itens_pendentes
         FROM receitas r
         LEFT JOIN receitas_itens ri ON ri.receita_id = r.id
         WHERE r.paciente_id = ?
@@ -47,7 +47,7 @@ try {
         WHERE r.paciente_id = ?
         AND r.status = 'ativa'
         AND r.data_validade >= CURDATE()
-        AND ri.quantidade_retirada < ri.quantidade_autorizada
+        AND COALESCE((SELECT SUM(quantidade) FROM receitas_retiradas WHERE receita_item_id = ri.id), 0) < ri.quantidade_autorizada
         ORDER BY r.data_validade ASC
     ");
     $stmt->execute([$paciente_id]);
@@ -102,16 +102,18 @@ $pageTitle = 'Histórico do Paciente';
     <meta name="author" content="Sistema Farmácia">
     <meta name="robots" content="noindex, nofollow">
     
-    <!-- Open Graph -->
-    <meta property="og:title" content="<?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?>">
-    <meta property="og:description" content="Sistema de gestão de farmácia">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="../images/logo.svg">
+    <?php 
+    $ogTitle = htmlspecialchars($pageTitle) . ' - Gov Farma';
+    $ogDescription = 'Gov Farma - Histórico completo do paciente. Receitas ativas, dispensações e medicamentos pendentes.';
+    include '../includes/og_meta.php'; 
+    ?>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
     <link rel="apple-touch-icon" href="../images/logo.svg">
+    
+    <?php include '../includes/pwa_head.php'; ?>
     
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -155,27 +157,26 @@ $pageTitle = 'Histórico do Paciente';
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
         <main class="flex-1 px-6 py-10 lg:px-12 space-y-8">
             <header class="flex flex-col gap-4">
-                <nav class="flex items-center gap-2 text-sm text-slate-500">
-                    <a href="pacientes.php" class="hover:text-primary-600 transition">Pacientes</a>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
-                    <span class="text-slate-900 font-medium">Histórico</span>
-                </nav>
-                <div class="flex items-start justify-between">
-                    <div>
-                        <h1 class="text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($paciente['nome']); ?></h1>
-                        <div class="flex gap-4 mt-2 text-slate-600">
-                            <?php if (!empty($paciente['cpf'])): ?>
-                                <span class="text-sm">CPF: <?php echo htmlspecialchars($paciente['cpf']); ?></span>
-                            <?php endif; ?>
-                            <?php if (!empty($paciente['cartao_sus'])): ?>
-                                <span class="text-sm">Cartão SUS: <?php echo htmlspecialchars($paciente['cartao_sus']); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                <div class="flex items-center justify-between">
+                    <a href="pacientes.php" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white hover:bg-gray-50 text-slate-700 font-medium shadow-sm hover:shadow transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        Voltar
+                    </a>
                     <a href="pacientes_form.php?id=<?php echo $paciente_id; ?>" class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm text-slate-600 font-semibold shadow hover:shadow-lg transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
                         Editar dados
                     </a>
+                </div>
+                <div>
+                    <h1 class="text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($paciente['nome']); ?></h1>
+                    <div class="flex gap-4 mt-2 text-slate-600">
+                        <?php if (!empty($paciente['cpf'])): ?>
+                            <span class="text-sm">CPF: <?php echo htmlspecialchars($paciente['cpf']); ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($paciente['cartao_sus'])): ?>
+                            <span class="text-sm">Cartão SUS: <?php echo htmlspecialchars($paciente['cartao_sus']); ?></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </header>
 
@@ -236,7 +237,12 @@ $pageTitle = 'Histórico do Paciente';
                                         <p class="text-sm text-slate-600 mt-1"><?php echo htmlspecialchars($item['apresentacao'] ?? ''); ?></p>
                                         <div class="flex gap-4 mt-3 text-sm">
                                             <span class="text-slate-600">
-                                                <strong class="text-amber-600"><?php echo $item['quantidade_autorizada'] - $item['quantidade_retirada']; ?></strong> 
+                                                <strong class="text-amber-600"><?php 
+                                                    $stmt_ret = $conn->prepare("SELECT COALESCE(SUM(quantidade), 0) FROM receitas_retiradas WHERE receita_item_id = ?");
+                                                    $stmt_ret->execute([$item['id']]);
+                                                    $total_retiradas = $stmt_ret->fetchColumn();
+                                                    echo $item['quantidade_autorizada'] - $total_retiradas; 
+                                                ?></strong> 
                                                 de <?php echo $item['quantidade_autorizada']; ?> pendente(s)
                                             </span>
                                             <span class="text-slate-500">

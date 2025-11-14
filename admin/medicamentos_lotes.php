@@ -68,25 +68,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $codigo_barras_id = (int)$conn->lastInsertId();
                     }
                     
-                    // 3. Verificar se o lote já existe para este código de barras
-                    $stmt = $conn->prepare("SELECT id FROM lotes WHERE codigo_barras_id = ? AND numero_lote = ?");
-                    $stmt->execute([$codigo_barras_id, $numero_lote]);
+                    // 3. Verificar se o lote já existe para este código de barras e medicamento
+                    $stmt = $conn->prepare("SELECT id, quantidade_atual FROM lotes WHERE codigo_barras_id = ? AND medicamento_id = ? AND numero_lote = ?");
+                    $stmt->execute([$codigo_barras_id, $med_id, $numero_lote]);
+                    $lote_existente = $stmt->fetch(PDO::FETCH_ASSOC);
                     
-                    if ($stmt->fetch()) {
-                        throw new RuntimeException("Já existe um lote com este número para este código de barras.");
+                    if ($lote_existente) {
+                        // Reutilizar lote existente: atualizar dados e adicionar quantidade
+                        $lote_id = $lote_existente['id'];
+                        $quantidade_atual_anterior = (int)$lote_existente['quantidade_atual'];
+                        $nova_quantidade_atual = $quantidade_atual_anterior + $quantidade_total;
+                        
+                        $sql = "UPDATE lotes SET 
+                                data_recebimento = ?, 
+                                data_validade = ?, 
+                                quantidade_total = quantidade_total + ?,
+                                quantidade_atual = ?,
+                                fornecedor = ?,
+                                nota_fiscal = ?,
+                                observacoes = ?,
+                                atualizado_em = NOW()
+                                WHERE id = ?";
+                        
+                        $stmt = $conn->prepare($sql);
+                        $stmt->execute([
+                            $data_recebimento, $data_validade, $quantidade_total, $nova_quantidade_atual,
+                            $fornecedor, $nota_fiscal, $observacoes, $lote_id
+                        ]);
+                    } else {
+                        // 4. Inserir novo lote (ligado ao código de barras)
+                        // quantidade_caixas e quantidade_por_caixa não são mais usados (valores padrão 0)
+                        $sql = "INSERT INTO lotes (codigo_barras_id, medicamento_id, numero_lote, data_recebimento, data_validade, 
+                                quantidade_total, quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                        
+                        $stmt = $conn->prepare($sql);
+                        $stmt->execute([
+                            $codigo_barras_id, $med_id, $numero_lote, $data_recebimento, $data_validade,
+                            $quantidade_total, $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
+                        ]);
                     }
-                    
-                    // 4. Inserir novo lote (ligado ao código de barras)
-                    // quantidade_caixas e quantidade_por_caixa não são mais usados (valores padrão 0)
-                    $sql = "INSERT INTO lotes (codigo_barras_id, medicamento_id, numero_lote, data_recebimento, data_validade, 
-                            quantidade_total, quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-                    
-                    $stmt = $conn->prepare($sql);
-                    $stmt->execute([
-                        $codigo_barras_id, $med_id, $numero_lote, $data_recebimento, $data_validade,
-                        $quantidade_total, $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
-                    ]);
                     
                     // 5. Atualizar estoque do medicamento (soma de todos os lotes de todos os códigos de barras)
                     $stmt = $conn->prepare("
@@ -102,7 +123,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$estoque_total, $med_id]);
                     
                     $conn->commit();
-                    $_SESSION['success'] = "Lote adicionado com sucesso!";
+                    
+                    if ($lote_existente) {
+                        $_SESSION['success'] = "Lote reutilizado e atualizado com sucesso! A quantidade foi adicionada ao lote existente.";
+                    } else {
+                        $_SESSION['success'] = "Lote adicionado com sucesso!";
+                    }
                     
                     // Se veio de lotes.php, redirecionar de volta
                     if (isset($_POST['from_lotes']) && $_POST['from_lotes'] === '1') {
