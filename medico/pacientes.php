@@ -103,20 +103,23 @@ $pageTitle = 'Consulta de Pacientes';
 
             pacientes.forEach((paciente) => {
                 const card = document.createElement('div');
-                card.className = 'glass-card p-5 flex flex-col gap-3 border border-white/70';
+                card.className = 'glass-card p-5 flex flex-col gap-3 border border-white/70 cursor-pointer hover:border-primary-300 hover:shadow-md transition-all';
+                card.onclick = () => {
+                    window.location.href = `paciente_historico.php?id=${paciente.id}`;
+                };
                 card.innerHTML = `
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
+                        <div class="flex-1">
                             <h3 class="text-lg font-semibold text-slate-900">${paciente.nome}</h3>
                             <div class="text-xs sm:text-sm text-slate-500 flex flex-col sm:flex-row sm:items-center sm:gap-4 mt-2">
                                 <span>CPF: ${paciente.cpf ? paciente.cpf : '—'}</span>
                                 <span>Cartão SUS: ${paciente.cartao_sus ? paciente.cartao_sus : '—'}</span>
                             </div>
                         </div>
-                        <a href="paciente_historico.php?id=${paciente.id}" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-primary-500 transition">
+                        <div class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow pointer-events-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2 2m6 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                             Histórico
-                        </a>
+                        </div>
                     </div>
                 `;
                 fragment.appendChild(card);
