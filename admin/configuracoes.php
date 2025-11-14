@@ -256,19 +256,19 @@ $pageTitle = 'Configurações do Sistema';
 
             <!-- Tabs -->
             <div class="glass-card p-0 overflow-hidden">
-                <div class="flex flex-wrap gap-1 p-2 bg-white/70 border-b border-white/60">
-                    <a href="?tab=categorias" class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all <?php echo $active_tab === 'categorias' ? 'bg-primary-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'; ?>">
+                <div class="flex flex-wrap gap-1 sm:gap-2 p-2 sm:p-3 bg-white/70 border-b border-white/60">
+                    <a href="?tab=categorias" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all <?php echo $active_tab === 'categorias' ? 'bg-primary-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'; ?>">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                        Categorias
+                        <span>Categorias</span>
                     </a>
-                    <a href="?tab=unidades" class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all <?php echo $active_tab === 'unidades' ? 'bg-primary-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'; ?>">
+                    <a href="?tab=unidades" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all <?php echo $active_tab === 'unidades' ? 'bg-primary-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'; ?>">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                        Apresentações
+                        <span>Apresentações</span>
                     </a>
                 </div>
 
                 <!-- Content -->
-                <div class="p-6">
+                <div class="p-4 sm:p-6">
                     <?php
                     // Determinar qual conteúdo mostrar
                     $tab_config = [

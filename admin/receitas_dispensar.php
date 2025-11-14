@@ -149,12 +149,12 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
     <main class="content-area">
         <!-- Header -->
         <div class="glass-card p-4 mb-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <span class="text-2xl">💊</span>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-lg sm:text-xl font-bold text-gray-800 flex flex-wrap items-center gap-2">
+                        <span class="text-xl sm:text-2xl">💊</span>
                         <span>Dispensar Receita</span>
-                        <span>#<?php echo !empty($receita['numero_receita']) ? htmlspecialchars($receita['numero_receita']) : $receita_id; ?></span>
+                        <span class="text-base sm:text-xl">#<?php echo !empty($receita['numero_receita']) ? htmlspecialchars($receita['numero_receita']) : $receita_id; ?></span>
                         <button 
                             onclick="confirmarDeletarReceita()" 
                             class="opacity-40 hover:opacity-100 text-red-500 hover:text-red-600 transition-all p-1 rounded ml-1"
@@ -167,7 +167,7 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                     </h1>
                     <p class="text-xs text-gray-600 mt-1">Realize a dispensação dos medicamentos desta receita</p>
                 </div>
-                <a href="receitas.php" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-all text-sm font-medium">
+                <a href="receitas.php" class="w-full sm:w-auto px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-all text-sm font-medium text-center">
                     ← Voltar
                 </a>
             </div>
@@ -185,7 +185,7 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <span>👤</span> Dados do Paciente
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div class="bg-blue-50 rounded-lg p-4">
                         <p class="text-xs text-gray-600 mb-1">Nome</p>
                         <p class="font-semibold text-gray-900"><?php echo htmlspecialchars($receita['paciente_nome']); ?></p>
@@ -206,7 +206,7 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <span>📋</span> Dados da Receita
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-green-50 rounded-lg p-4">
                         <p class="text-xs text-gray-600 mb-1">Número</p>
                         <p class="font-semibold text-gray-900"><?php echo !empty($receita['numero_receita']) ? htmlspecialchars($receita['numero_receita']) : 'N/A'; ?></p>
@@ -267,16 +267,16 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                     <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
                         <?php foreach ($itens as $item): ?>
                             <div class="p-4 hover:bg-gray-50 transition-colors">
-                                <div class="flex items-center justify-between gap-4">
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-3 mb-2">
-                                            <h4 class="font-semibold text-gray-900"><?php echo htmlspecialchars($item['medicamento_nome']); ?></h4>
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div class="flex-1 min-w-0 w-full sm:w-auto">
+                                        <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                                            <h4 class="font-semibold text-gray-900 text-sm sm:text-base break-words"><?php echo htmlspecialchars($item['medicamento_nome']); ?></h4>
                                             <?php if ($item['codigo_barras']): ?>
-                                                <span class="text-xs text-gray-500"><?php echo htmlspecialchars($item['codigo_barras']); ?></span>
+                                                <span class="text-xs text-gray-500 whitespace-nowrap"><?php echo htmlspecialchars($item['codigo_barras']); ?></span>
                                             <?php endif; ?>
                                         </div>
                                         
-                                        <div class="flex items-center gap-4 text-sm">
+                                        <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
                                             <span class="text-gray-600">
                                                 <span class="font-medium text-blue-600"><?php echo $item['quantidade_autorizada']; ?></span> autorizada
                                             </span>
@@ -286,28 +286,28 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                                         </div>
                                         
                                         <?php if ($item['total_retiradas'] < $item['quantidade_autorizada']): ?>
-                                            <div class="mt-2 flex items-center gap-2 text-sm">
-                                                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div class="mt-2 flex items-center gap-2 text-xs sm:text-sm">
+                                                <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                 </svg>
                                                 <span class="text-gray-600">
-                                                    Próxima dispensação: <span class="font-medium text-blue-600"><?php echo $item['proxima_data_formatada']; ?></span>
+                                                    Próxima: <span class="font-medium text-blue-600"><?php echo $item['proxima_data_formatada']; ?></span>
                                                 </span>
                                             </div>
                                         <?php endif; ?>
                                     </div>
                                     
-                                    <div class="flex items-center gap-3">
+                                    <div class="w-full sm:w-auto flex-shrink-0">
                                         <?php 
                                         $quantidade_restante = $item['quantidade_autorizada'] - $item['total_retiradas'];
                                         if ($quantidade_restante > 0 && $receita['status'] === 'ativa'): ?>
                                             <button 
                                                 onclick="abrirModalDispensacao(<?php echo $item['id']; ?>, '<?php echo addslashes($item['medicamento_nome']); ?>', <?php echo $quantidade_restante; ?>, <?php echo $item['medicamento_id']; ?>)"
-                                                class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-all whitespace-nowrap">
+                                                class="w-full sm:w-auto px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-all">
                                                 ✓ Dispensar
                                             </button>
                                         <?php elseif ($item['total_retiradas'] >= $item['quantidade_autorizada']): ?>
-                                            <span class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium whitespace-nowrap">
+                                            <span class="w-full sm:w-auto inline-block px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium text-center">
                                                 ✓ Completo
                                             </span>
                                         <?php endif; ?>

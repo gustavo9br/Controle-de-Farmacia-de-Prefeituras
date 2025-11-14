@@ -38,9 +38,21 @@ try {
     $stmt->execute([$paciente_id]);
     $receitas_ativas = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Buscar itens pendentes detalhados
+    // Buscar itens pendentes detalhados com informações da receita
     $stmt = $conn->prepare("
-        SELECT ri.*, r.id as receita_id, r.data_validade, m.nome as medicamento_nome, m.descricao as apresentacao
+        SELECT 
+            ri.*, 
+            r.id as receita_id, 
+            r.data_validade, 
+            r.data_emissao,
+            r.numero_receita,
+            ri.intervalo_dias,
+            m.nome as medicamento_nome, 
+            m.descricao as apresentacao, 
+            m.id as medicamento_id,
+            (SELECT MAX(rr.criado_em) 
+             FROM receitas_retiradas rr 
+             WHERE rr.receita_item_id = ri.id) as ultima_retirada
         FROM receitas_itens ri
         INNER JOIN receitas r ON r.id = ri.receita_id
         INNER JOIN medicamentos m ON m.id = ri.medicamento_id
@@ -52,6 +64,40 @@ try {
     ");
     $stmt->execute([$paciente_id]);
     $itens_pendentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Buscar datas planejadas e informações adicionais para cada item pendente
+    foreach ($itens_pendentes as &$item) {
+        // Buscar próxima data planejada
+        $stmt_datas = $conn->prepare("
+            SELECT 
+                rrp.data_planejada,
+                rrp.numero_retirada,
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM receitas_retiradas rr 
+                    WHERE rr.receita_item_id = rrp.receita_item_id 
+                    AND (rr.data_planejada = rrp.data_planejada OR (rr.data_planejada IS NULL AND DATE(rr.criado_em) = rrp.data_planejada))
+                ) THEN 1 ELSE 0 END as ja_dispensada
+            FROM receitas_retiradas_planejadas rrp
+            WHERE rrp.receita_item_id = ?
+            AND NOT EXISTS (
+                SELECT 1 FROM receitas_retiradas rr
+                WHERE rr.receita_item_id = rrp.receita_item_id
+                AND (rr.data_planejada = rrp.data_planejada OR (rr.data_planejada IS NULL AND DATE(rr.criado_em) = rrp.data_planejada))
+            )
+            ORDER BY rrp.data_planejada ASC
+            LIMIT 1
+        ");
+        $stmt_datas->execute([$item['id']]);
+        $proxima_data = $stmt_datas->fetch(PDO::FETCH_ASSOC);
+        $item['proxima_data_planejada'] = $proxima_data ? $proxima_data['data_planejada'] : null;
+        
+        // Buscar total de retiradas já feitas
+        $stmt_ret = $conn->prepare("SELECT COALESCE(SUM(quantidade), 0) FROM receitas_retiradas WHERE receita_item_id = ?");
+        $stmt_ret->execute([$item['id']]);
+        $item['total_retiradas'] = $stmt_ret->fetchColumn();
+        $item['quantidade_restante'] = $item['quantidade_autorizada'] - $item['total_retiradas'];
+    }
+    unset($item);
     
     // Buscar histórico completo de dispensações
     $stmt = $conn->prepare("
@@ -153,35 +199,67 @@ $pageTitle = 'Histórico do Paciente';
     <link rel="stylesheet" href="../css/admin_new.css">
 </head>
 <body class="admin-shell">
+    <button id="mobileMenuButton" class="mobile-menu-button" aria-label="Abrir menu">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
     <div class="flex min-h-screen">
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
-        <main class="flex-1 px-6 py-10 lg:px-12 space-y-8">
-            <header class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                    <a href="pacientes.php" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white hover:bg-gray-50 text-slate-700 font-medium shadow-sm hover:shadow transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                        Voltar
-                    </a>
-                    <a href="pacientes_form.php?id=<?php echo $paciente_id; ?>" class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm text-slate-600 font-semibold shadow hover:shadow-lg transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
-                        Editar dados
+        <main class="content-area">
+            <div class="space-y-8">
+            <header class="flex flex-col gap-3 sm:gap-4">
+                <!-- Mobile: Menu (fixo à esquerda) | "Paciente" (centralizado) | Botão Voltar (à direita) -->
+                <!-- Desktop: Nome e Editar na primeira linha, Voltar separado -->
+                <div class="flex items-center justify-between gap-2 sm:gap-3">
+                    <!-- Espaço para o menu mobile (invisível no desktop) -->
+                    <div class="w-12 lg:hidden"></div>
+                    
+                    <!-- Título "Paciente" centralizado no mobile, Nome no desktop -->
+                    <div class="flex-1 flex justify-center lg:justify-start">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <h1 class="text-base sm:text-lg lg:text-xl xl:text-2xl font-bold text-slate-900 text-center lg:text-left">
+                                <span class="lg:hidden">Paciente</span>
+                                <span class="hidden lg:inline"><?php echo htmlspecialchars($paciente['nome']); ?></span>
+                            </h1>
+                            <a href="pacientes_form.php?id=<?php echo $paciente_id; ?>" class="hidden lg:inline-flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-white hover:bg-gray-50 text-slate-600 shadow-sm hover:shadow transition-all flex-shrink-0" title="Editar dados do paciente">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 lg:w-5 lg:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Botão Voltar -->
+                    <a href="pacientes.php" class="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-lg bg-white hover:bg-gray-50 text-slate-700 font-medium shadow-sm hover:shadow transition-all text-xs sm:text-sm flex-shrink-0" title="Voltar para lista de pacientes">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        <span class="hidden sm:inline">Voltar</span>
                     </a>
                 </div>
-                <div>
-                    <h1 class="text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($paciente['nome']); ?></h1>
-                    <div class="flex gap-4 mt-2 text-slate-600">
+                
+                <!-- Informações do paciente (mobile: abaixo do título, desktop: abaixo do nome) -->
+                <div class="flex flex-col gap-2 sm:gap-3">
+                    <!-- Nome do paciente (apenas no mobile) -->
+                    <div class="lg:hidden">
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-lg sm:text-xl font-bold text-slate-900 break-words"><?php echo htmlspecialchars($paciente['nome']); ?></h2>
+                            <a href="pacientes_form.php?id=<?php echo $paciente_id; ?>" class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white hover:bg-gray-50 text-slate-600 shadow-sm hover:shadow transition-all flex-shrink-0" title="Editar dados do paciente">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- CPF e Cartão SUS -->
+                    <div class="flex flex-wrap gap-2 sm:gap-4 text-slate-600">
                         <?php if (!empty($paciente['cpf'])): ?>
-                            <span class="text-sm">CPF: <?php echo htmlspecialchars($paciente['cpf']); ?></span>
+                            <span class="text-xs sm:text-sm">CPF: <?php echo htmlspecialchars($paciente['cpf']); ?></span>
                         <?php endif; ?>
                         <?php if (!empty($paciente['cartao_sus'])): ?>
-                            <span class="text-sm">Cartão SUS: <?php echo htmlspecialchars($paciente['cartao_sus']); ?></span>
+                            <span class="text-xs sm:text-sm">Cartão SUS: <?php echo htmlspecialchars($paciente['cartao_sus']); ?></span>
                         <?php endif; ?>
                     </div>
                 </div>
             </header>
 
             <!-- Estatísticas -->
-            <section class="grid gap-4 lg:grid-cols-3">
+            <section class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="glass-card p-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -234,31 +312,36 @@ $pageTitle = 'Histórico do Paciente';
                                 <div class="flex items-start justify-between">
                                     <div class="flex-1">
                                         <h4 class="font-semibold text-slate-900"><?php echo htmlspecialchars($item['medicamento_nome']); ?></h4>
-                                        <p class="text-sm text-slate-600 mt-1"><?php echo htmlspecialchars($item['apresentacao'] ?? ''); ?></p>
-                                        <div class="flex gap-4 mt-3 text-sm">
+                                        <p class="text-xs text-slate-500 mt-1">Receita #<?php echo !empty($item['numero_receita']) ? htmlspecialchars($item['numero_receita']) : $item['receita_id']; ?></p>
+                                        <div class="flex flex-wrap gap-3 sm:gap-4 mt-3 text-sm">
                                             <span class="text-slate-600">
-                                                <strong class="text-amber-600"><?php 
-                                                    $stmt_ret = $conn->prepare("SELECT COALESCE(SUM(quantidade), 0) FROM receitas_retiradas WHERE receita_item_id = ?");
-                                                    $stmt_ret->execute([$item['id']]);
-                                                    $total_retiradas = $stmt_ret->fetchColumn();
-                                                    echo $item['quantidade_autorizada'] - $total_retiradas; 
-                                                ?></strong> 
-                                                de <?php echo $item['quantidade_autorizada']; ?> pendente(s)
+                                                <strong class="text-amber-600"><?php echo $item['quantidade_restante']; ?></strong> 
+                                                de <?php echo $item['quantidade_autorizada']; ?> unidade(s) pendente(s)
                                             </span>
+                                            <?php if (!empty($item['proxima_data_planejada'])): ?>
+                                                <span class="text-blue-600 font-medium">
+                                                    Próxima retirada: <?php echo formatarData($item['proxima_data_planejada']); ?>
+                                                </span>
+                                            <?php endif; ?>
                                             <span class="text-slate-500">
-                                                Validade: <?php echo formatarData($item['data_validade']); ?>
+                                                Validade receita: <?php echo formatarData($item['data_validade']); ?>
                                             </span>
                                         </div>
-                                        <?php if ($item['ultima_retirada']): ?>
+                                        <?php if (!empty($item['ultima_retirada'])): ?>
                                             <p class="text-xs text-slate-400 mt-2">
-                                                Última retirada: <?php echo formatarData($item['ultima_retirada']); ?>
-                                                (Intervalo: <?php echo $item['intervalo_dias']; ?> dias)
+                                                Última retirada: <?php echo date('d/m/Y H:i', strtotime($item['ultima_retirada'])); ?>
+                                                <?php if (!empty($item['intervalo_dias']) && $item['intervalo_dias'] > 0): ?>
+                                                    (Intervalo: <?php echo $item['intervalo_dias']; ?> dias)
+                                                <?php endif; ?>
                                             </p>
                                         <?php endif; ?>
                                     </div>
-                                    <a href="index.php" class="inline-flex items-center gap-1 rounded-full bg-primary-600 px-4 py-2 text-xs text-white font-semibold hover:bg-primary-500 transition">
+                                    <button 
+                                        onclick="abrirModalDispensacaoReceita(<?php echo $item['receita_id']; ?>, <?php echo $item['id']; ?>, <?php echo $item['medicamento_id']; ?>, '<?php echo addslashes($item['medicamento_nome']); ?>', <?php echo $item['quantidade_restante']; ?>, <?php echo $paciente_id; ?>, '<?php echo $item['proxima_data_planejada'] ?? ''; ?>')" 
+                                        class="inline-flex items-center gap-1 rounded-full bg-primary-600 px-4 py-2 text-xs text-white font-semibold hover:bg-primary-500 transition"
+                                    >
                                         Dispensar
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -317,10 +400,7 @@ $pageTitle = 'Histórico do Paciente';
                                             <?php echo date('d/m/Y H:i', strtotime($disp['data_dispensacao'])); ?>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <div>
-                                                <p class="font-medium text-slate-900"><?php echo htmlspecialchars($disp['medicamento_nome']); ?></p>
-                                                <p class="text-xs text-slate-500"><?php echo htmlspecialchars($disp['apresentacao'] ?? ''); ?></p>
-                                            </div>
+                                            <p class="font-medium text-slate-900"><?php echo htmlspecialchars($disp['medicamento_nome']); ?></p>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap font-semibold text-primary-600">
                                             <?php echo $disp['quantidade']; ?>
@@ -349,7 +429,6 @@ $pageTitle = 'Histórico do Paciente';
                                 <div class="flex items-start justify-between mb-3">
                                     <div class="flex-1">
                                         <p class="font-semibold text-slate-900"><?php echo htmlspecialchars($disp['medicamento_nome']); ?></p>
-                                        <p class="text-xs text-slate-500 mt-1"><?php echo htmlspecialchars($disp['apresentacao'] ?? ''); ?></p>
                                     </div>
                                     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold <?php echo $disp['tipo'] === 'receita' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'; ?>">
                                         <?php echo htmlspecialchars($disp['tipo_dispensacao']); ?>
@@ -383,9 +462,265 @@ $pageTitle = 'Histórico do Paciente';
                     </div>
                 <?php endif; ?>
             </section>
+            </div>
         </main>
     </div>
 
+    <!-- Modal de Dispensação Reutilizável -->
+    <div id="modalDispensacaoReceita" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-4 sm:p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-4">Dispensar Medicamento</h3>
+            
+            <form id="formDispensacaoReceita" class="space-y-4">
+                <input type="hidden" id="modal_receita_id" name="receita_id">
+                <input type="hidden" id="modal_receita_item_id" name="receita_item_id">
+                <input type="hidden" id="modal_medicamento_id" name="medicamento_id">
+                <input type="hidden" id="modal_paciente_id" name="paciente_id">
+                <input type="hidden" id="modal_data_planejada" name="data_planejada">
+                
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Medicamento</p>
+                    <p class="text-lg font-bold text-gray-900" id="modal_medicamento_nome_receita"></p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Buscar lote por código de barras (opcional)
+                    </label>
+                    <input type="text" id="codigo_barras_busca" placeholder="Digite ou escaneie o código de barras..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-base" autocomplete="off">
+                    <p class="text-xs text-gray-500 mt-1">Ou selecione manualmente abaixo</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <span class="text-red-500">*</span> Selecionar Lote
+                    </label>
+                    <select id="lote_id_receita" name="lote_id" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-base">
+                        <option value="">Carregando lotes...</option>
+                    </select>
+                </div>
+
+                <input type="hidden" id="quantidade_receita" name="quantidade">
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Observações</label>
+                    <textarea id="observacoes_receita" name="observacoes" rows="3" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none text-base"></textarea>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                    <button type="button" onclick="fecharModalDispensacaoReceita()" class="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-all text-sm sm:text-base">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base">
+                        ✓ Confirmar Dispensação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Alerta Customizado -->
+    <div id="modalAlerta" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+            <div class="text-center">
+                <div id="alertaIcon" class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-white text-3xl">ℹ</span>
+                </div>
+                <h3 id="alertaTitulo" class="text-xl font-bold text-gray-900 mb-2">Informação</h3>
+                <p id="alertaMensagem" class="text-gray-600 mb-6"></p>
+                <button onclick="fecharAlerta()" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-semibold transition-all">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/sidebar.js" defer></script>
+    <script>
+        let buscaLoteTimeout = null;
+        
+        function abrirModalDispensacaoReceita(receitaId, receitaItemId, medicamentoId, medicamentoNome, quantidadeAutorizada, pacienteId, dataPlanejada = null) {
+            document.getElementById('modal_receita_id').value = receitaId;
+            document.getElementById('modal_receita_item_id').value = receitaItemId;
+            document.getElementById('modal_medicamento_id').value = medicamentoId;
+            document.getElementById('modal_paciente_id').value = pacienteId;
+            document.getElementById('modal_medicamento_nome_receita').textContent = medicamentoNome;
+            document.getElementById('quantidade_receita').value = quantidadeAutorizada;
+            if (dataPlanejada) {
+                document.getElementById('modal_data_planejada').value = dataPlanejada;
+            }
+            document.getElementById('codigo_barras_busca').value = '';
+            
+            // Carregar lotes disponíveis
+            carregarLotesReceita(medicamentoId);
+            
+            document.getElementById('modalDispensacaoReceita').classList.remove('hidden');
+            document.getElementById('codigo_barras_busca').focus();
+        }
+
+        function fecharModalDispensacaoReceita() {
+            document.getElementById('modalDispensacaoReceita').classList.add('hidden');
+            document.getElementById('formDispensacaoReceita').reset();
+        }
+
+        async function carregarLotesReceita(medicamentoId) {
+            const select = document.getElementById('lote_id_receita');
+            select.innerHTML = '<option value="">Carregando...</option>';
+            
+            try {
+                const response = await fetch(`api/buscar_lotes.php?medicamento_id=${medicamentoId}`);
+                const data = await response.json();
+                
+                if (data.success && data.lotes.length > 0) {
+                    select.innerHTML = '<option value="">Selecione um lote</option>';
+                    data.lotes.forEach(lote => {
+                        const option = document.createElement('option');
+                        option.value = lote.id;
+                        option.textContent = `Lote ${lote.numero_lote} - Validade: ${lote.data_validade_formatada} - Disponível: ${lote.quantidade_atual}`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">Nenhum lote disponível</option>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar lotes:', error);
+                select.innerHTML = '<option value="">Erro ao carregar lotes</option>';
+            }
+        }
+
+        async function buscarLotePorCodigo() {
+            const codigoBarras = document.getElementById('codigo_barras_busca').value.trim();
+            const medicamentoId = document.getElementById('modal_medicamento_id').value;
+            const select = document.getElementById('lote_id_receita');
+            
+            if (!codigoBarras || codigoBarras.length < 3) {
+                await carregarLotesReceita(medicamentoId);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api/buscar_lote_por_codigo.php?codigo_barras=${encodeURIComponent(codigoBarras)}&medicamento_id=${medicamentoId}`);
+                const data = await response.json();
+                
+                if (data.success && data.lote) {
+                    await carregarLotesReceita(medicamentoId);
+                    setTimeout(() => {
+                        select.value = data.lote.id;
+                    }, 100);
+                } else {
+                    await carregarLotesReceita(medicamentoId);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar lote:', error);
+                await carregarLotesReceita(medicamentoId);
+            }
+        }
+
+        function mostrarAlerta(mensagem, tipo = 'info', titulo = 'Informação') {
+            const modal = document.getElementById('modalAlerta');
+            const icon = document.getElementById('alertaIcon');
+            const tituloEl = document.getElementById('alertaTitulo');
+            const mensagemEl = document.getElementById('alertaMensagem');
+            
+            tituloEl.textContent = titulo;
+            mensagemEl.textContent = mensagem;
+            
+            // Ajustar cor do ícone baseado no tipo
+            if (tipo === 'success') {
+                icon.className = 'w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4';
+                icon.innerHTML = '<span class="text-white text-3xl">✓</span>';
+            } else if (tipo === 'error') {
+                icon.className = 'w-16 h-16 bg-gradient-to-br from-red-500 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-4';
+                icon.innerHTML = '<span class="text-white text-3xl">✕</span>';
+            } else {
+                icon.className = 'w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4';
+                icon.innerHTML = '<span class="text-white text-3xl">ℹ</span>';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function fecharAlerta() {
+            document.getElementById('modalAlerta').classList.add('hidden');
+        }
+
+        // Busca automática enquanto digita
+        document.addEventListener('DOMContentLoaded', function() {
+            const codigoBarrasInput = document.getElementById('codigo_barras_busca');
+            if (codigoBarrasInput) {
+                codigoBarrasInput.addEventListener('input', function(e) {
+                    clearTimeout(buscaLoteTimeout);
+                    buscaLoteTimeout = setTimeout(() => {
+                        buscarLotePorCodigo();
+                    }, 300);
+                });
+            }
+
+            // Submissão do formulário
+            const form = document.getElementById('formDispensacaoReceita');
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(form);
+                    const data = {
+                        receita_id: formData.get('receita_id'),
+                        receita_item_id: formData.get('receita_item_id'),
+                        medicamento_id: formData.get('medicamento_id'),
+                        paciente_id: formData.get('paciente_id'),
+                        lote_id: formData.get('lote_id'),
+                        quantidade: formData.get('quantidade'),
+                        observacoes: formData.get('observacoes'),
+                        data_planejada: formData.get('data_planejada') || null
+                    };
+                    
+                    try {
+                        const response = await fetch('api/dispensar_receita.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            mostrarAlerta(result.message || 'Dispensação realizada com sucesso!', 'success', 'Sucesso');
+                            fecharModalDispensacaoReceita();
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            mostrarAlerta(result.message || 'Erro ao realizar dispensação', 'error', 'Erro');
+                        }
+                    } catch (error) {
+                        console.error('Erro:', error);
+                        mostrarAlerta('Erro ao processar dispensação. Tente novamente.', 'error', 'Erro');
+                    }
+                });
+            }
+
+            // Fechar modal de alerta ao clicar fora
+            const modalAlerta = document.getElementById('modalAlerta');
+            if (modalAlerta) {
+                modalAlerta.addEventListener('click', (e) => {
+                    if (e.target.id === 'modalAlerta') {
+                        fecharAlerta();
+                    }
+                });
+            }
+
+            // Fechar modal de dispensação ao clicar fora
+            const modalDispensacao = document.getElementById('modalDispensacaoReceita');
+            if (modalDispensacao) {
+                modalDispensacao.addEventListener('click', (e) => {
+                    if (e.target.id === 'modalDispensacaoReceita') {
+                        fecharModalDispensacaoReceita();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

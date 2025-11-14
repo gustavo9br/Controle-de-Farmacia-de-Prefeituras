@@ -156,19 +156,20 @@ $pageTitle = 'Detalhes do Medicamento';
     <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
     <div class="flex min-h-screen">
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
-        <main class="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-12 lg:py-10 space-y-6 lg:space-y-8">
+        <main class="content-area">
+            <div class="space-y-8">
             <!-- Header -->
-            <header class="flex flex-col gap-4 lg:gap-6">
-                <div class="flex items-center gap-3 text-sm text-slate-500">
+            <header class="flex flex-col gap-3 sm:gap-4 lg:gap-6">
+                <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-500">
                     <a href="medicamentos.php" class="hover:text-primary-600 transition-colors">Medicamentos</a>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     <span class="text-slate-900 font-medium">Detalhes</span>
                 </div>
                 
                 <div class="space-y-3 sm:space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                        <div class="space-y-2">
-                            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($medicamento['nome']); ?></h1>
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                        <div class="space-y-2 flex-1 min-w-0">
+                            <h1 class="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-slate-900 break-words"><?php echo htmlspecialchars($medicamento['nome']); ?></h1>
                             <?php
                             // Buscar códigos de barras do medicamento
                             $stmt = $conn->prepare("SELECT codigo FROM codigos_barras WHERE medicamento_id = ? ORDER BY codigo ASC LIMIT 3");
@@ -187,18 +188,20 @@ $pageTitle = 'Detalhes do Medicamento';
                             <?php endif; ?>
                         </div>
                         
-                        <div class="flex flex-wrap gap-2.5">
-                            <a href="medicamentos_form.php?id=<?php echo $id; ?>" class="inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-5 py-2.5 text-sm text-white font-semibold shadow-glow hover:bg-primary-500 transition">
+                        <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-2.5 w-full sm:w-auto">
+                            <a href="medicamentos_form.php?id=<?php echo $id; ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-white font-semibold shadow-glow hover:bg-primary-500 transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 Editar
                             </a>
-                            <button onclick="document.getElementById('codigosBarrasModal').classList.remove('hidden')" class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
+                            <button onclick="document.getElementById('codigosBarrasModal').classList.remove('hidden')" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
-                                Gerenciar Códigos de Barras
+                                <span class="hidden sm:inline">Gerenciar Códigos de Barras</span>
+                                <span class="sm:hidden">Códigos</span>
                             </button>
-                            <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
+                            <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-primary-600 font-semibold shadow hover:shadow-lg transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                                Gerenciar Lotes
+                                <span class="hidden sm:inline">Gerenciar Lotes</span>
+                                <span class="sm:hidden">Lotes</span>
                             </a>
                         </div>
                     </div>
@@ -232,9 +235,9 @@ $pageTitle = 'Detalhes do Medicamento';
             <?php endif; ?>
 
             <!-- Cards de Resumo -->
-            <div class="grid gap-6 sm:grid-cols-2">
+            <div class="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                 <!-- Card Estoque -->
-                <div class="glass-card p-6 space-y-4">
+                <div class="glass-card p-4 sm:p-6 space-y-3 sm:space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Estoque Atual</h3>
                         <div class="rounded-full bg-amber-100 p-2">
@@ -260,7 +263,7 @@ $pageTitle = 'Detalhes do Medicamento';
                 </div>
 
                 <!-- Card Lotes -->
-                <div class="glass-card p-6 space-y-4">
+                <div class="glass-card p-4 sm:p-6 space-y-3 sm:space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Lotes Cadastrados</h3>
                         <div class="rounded-full bg-sky-100 p-2">
@@ -288,9 +291,9 @@ $pageTitle = 'Detalhes do Medicamento';
             </div>
 
             <!-- Informações Detalhadas -->
-            <div class="grid gap-6 lg:grid-cols-2">
+            <div class="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 <!-- Informações Gerais -->
-                <div class="glass-card p-6 space-y-6">
+                <div class="glass-card p-4 sm:p-6 space-y-4 sm:space-y-6">
                     <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Informações Gerais
@@ -321,7 +324,7 @@ $pageTitle = 'Detalhes do Medicamento';
 
                 <!-- Descrição -->
                 <?php if (!empty($medicamento['descricao'])): ?>
-                <div class="glass-card p-6 space-y-4">
+                <div class="glass-card p-4 sm:p-6 space-y-3 sm:space-y-4">
                     <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Descrição
@@ -333,19 +336,20 @@ $pageTitle = 'Detalhes do Medicamento';
 
             <!-- Tabela de Lotes -->
             <div class="glass-card p-0 overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
-                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/60 bg-white/70">
+                    <h2 class="text-base sm:text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         Lotes Disponíveis
                     </h2>
-                    <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-sm text-white font-semibold shadow hover:bg-primary-500 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white font-semibold shadow hover:bg-primary-500 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                         Gerenciar Lotes
                     </a>
                 </div>
                 
                 <?php if (count($lotes) > 0): ?>
-                    <div class="responsive-table-wrapper">
+                    <!-- Desktop Table -->
+                    <div class="hidden lg:block overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-100 text-left">
                             <thead class="bg-white/60">
                                 <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -362,16 +366,16 @@ $pageTitle = 'Detalhes do Medicamento';
                             <tbody class="divide-y divide-slate-100 bg-white/80">
                                 <?php foreach ($lotes as $lote): ?>
                                     <tr class="text-sm text-slate-600">
-                                        <td data-label="Código de Barras" class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <span class="font-mono text-xs text-slate-500"><?php echo !empty($lote['codigo_barras']) ? htmlspecialchars($lote['codigo_barras']) : '—'; ?></span>
                                         </td>
-                                        <td data-label="Número" class="px-4 sm:px-6 py-3 sm:py-4 font-medium text-slate-900">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4 font-medium text-slate-900">
                                             <?php echo htmlspecialchars($lote['numero_lote']); ?>
                                         </td>
-                                        <td data-label="Recebimento" class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <?php echo empty($lote['data_recebimento']) ? 'N/A' : formatarData($lote['data_recebimento']); ?>
                                         </td>
-                                        <td data-label="Validade" class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <div class="flex flex-col gap-1">
                                                 <span><?php echo empty($lote['data_validade']) ? 'N/A' : formatarData($lote['data_validade']); ?></span>
                                                 <?php if (isset($lote['dias_para_vencer'])): ?>
@@ -381,18 +385,18 @@ $pageTitle = 'Detalhes do Medicamento';
                                                 <?php endif; ?>
                                             </div>
                                         </td>
-                                        <td data-label="Qtd. Inicial" class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <?php echo $lote['quantidade_total']; ?>
                                         </td>
-                                        <td data-label="Qtd. Atual" class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <span class="font-semibold <?php echo $lote['quantidade_atual'] <= 0 ? 'text-rose-600' : 'text-emerald-600'; ?>">
                                                 <?php echo $lote['quantidade_atual']; ?>
                                             </span>
                                         </td>
-                                        <td data-label="Fornecedor" class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <?php echo htmlspecialchars($lote['fornecedor'] ?? 'N/A'); ?>
                                         </td>
-                                        <td data-label="Ações" class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <div class="flex items-center justify-end gap-2">
                                                 <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>&edit=<?php echo (int)$lote['id']; ?>" class="action-chip" title="Editar lote">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -403,6 +407,59 @@ $pageTitle = 'Detalhes do Medicamento';
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Mobile Cards -->
+                    <div class="lg:hidden space-y-4">
+                        <?php foreach ($lotes as $lote): ?>
+                            <div class="p-4 sm:p-5 bg-white/80 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-3">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Lote</p>
+                                        <p class="text-lg font-bold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></p>
+                                        <?php if (!empty($lote['codigo_barras'])): ?>
+                                            <p class="text-xs text-slate-400 mt-1 font-mono">Código: <?php echo htmlspecialchars($lote['codigo_barras']); ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                    <a href="medicamentos_lotes.php?med_id=<?php echo $id; ?>&edit=<?php echo (int)$lote['id']; ?>" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm hover:shadow-md flex-shrink-0" title="Editar lote">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </a>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">Recebimento</p>
+                                        <p class="text-sm font-medium text-slate-700"><?php echo empty($lote['data_recebimento']) ? 'N/A' : formatarData($lote['data_recebimento']); ?></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">Validade</p>
+                                        <p class="text-sm font-medium text-slate-700"><?php echo empty($lote['data_validade']) ? 'N/A' : formatarData($lote['data_validade']); ?></p>
+                                        <?php if (isset($lote['dias_para_vencer'])): ?>
+                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mt-1 <?php echo validadeBadgeClass($lote['dias_para_vencer']); ?>">
+                                                <?php echo $lote['dias_para_vencer'] < 0 ? 'Vencido' : $lote['dias_para_vencer'] . ' dias'; ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">Qtd. Inicial</p>
+                                        <p class="text-sm font-medium text-slate-700"><?php echo $lote['quantidade_total']; ?></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">Qtd. Atual</p>
+                                        <p class="text-sm font-semibold <?php echo $lote['quantidade_atual'] <= 0 ? 'text-rose-600' : 'text-emerald-600'; ?>">
+                                            <?php echo $lote['quantidade_atual']; ?>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <?php if (!empty($lote['fornecedor'])): ?>
+                                    <div class="pt-2 border-t border-slate-100">
+                                        <p class="text-xs text-slate-500 mb-1">Fornecedor</p>
+                                        <p class="text-sm text-slate-700"><?php echo htmlspecialchars($lote['fornecedor']); ?></p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                 <?php else: ?>
                     <div class="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center text-slate-400">
@@ -418,10 +475,11 @@ $pageTitle = 'Detalhes do Medicamento';
 
             <!-- Botão Voltar -->
             <div class="flex justify-start">
-                <a href="medicamentos.php" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-slate-600 font-semibold shadow hover:shadow-lg transition">
+                <a href="medicamentos.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-slate-600 font-semibold shadow hover:shadow-lg transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     Voltar para lista
                 </a>
+            </div>
             </div>
         </main>
     </div>

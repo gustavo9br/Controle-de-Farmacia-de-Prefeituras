@@ -49,20 +49,20 @@ if (isset($_GET['id'])) {
 
     <main class="content-area">
         <div class="glass-card p-4 mb-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <span class="text-2xl">📄</span>
-                        <?php echo $pageTitle; ?>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <span class="text-xl sm:text-2xl">📄</span>
+                        <span class="break-words"><?php echo $pageTitle; ?></span>
                     </h1>
                     <p class="text-xs text-gray-600 mt-1">Cadastre receitas para dispensação controlada de medicamentos</p>
                 </div>
-                <div class="flex items-center gap-3">
-                    <a href="receitas.php" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all font-medium">
+                <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    <a href="receitas.php" class="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all font-medium text-sm sm:text-base text-center">
                         Cancelar
                     </a>
-                    <button type="submit" form="formReceita" class="px-8 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-bold">
-                        ✓ Cadastrar Receita
+                    <button type="submit" form="formReceita" class="flex-1 sm:flex-none px-4 sm:px-8 py-2 sm:py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-bold text-sm sm:text-base">
+                        ✓ Cadastrar
                     </button>
                 </div>
             </div>
@@ -81,20 +81,20 @@ if (isset($_GET['id'])) {
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             <span class="text-red-500">*</span> Paciente
                         </label>
-                        <div class="flex items-start gap-4">
-                            <div class="relative flex-1">
+                        <div class="space-y-4">
+                            <div class="relative">
                                 <input type="text" id="pacienteSearch" placeholder="🔍 Digite o nome, CPF ou SUS..." class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" autocomplete="off">
                                 <input type="hidden" id="paciente_id">
                                 <div id="pacienteResults" class="hidden absolute z-50 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 max-h-48 overflow-y-auto"></div>
                             </div>
-                            <div id="pacienteInfo" class="hidden flex-1"></div>
+                            <div id="pacienteInfo" class="hidden"></div>
                         </div>
                     </div>
 
                     <!-- Tipo de Receita e Número -->
                     <div class="mb-4">
-                        <div class="flex items-start gap-4">
-                            <div class="flex-1">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                     <span class="text-red-500">*</span> Tipo de Receita
                                 </label>
@@ -104,7 +104,7 @@ if (isset($_GET['id'])) {
                                 </select>
                                 <p class="text-xs text-gray-500 mt-1">Tipo de receita médica</p>
                             </div>
-                            <div class="flex-1">
+                            <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                     <span class="text-red-500">*</span> Número da Receita
                                 </label>
@@ -115,7 +115,7 @@ if (isset($_GET['id'])) {
                     </div>
 
                     <!-- Datas -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 <span class="text-red-500">*</span> Data de Apresentação
@@ -152,7 +152,7 @@ if (isset($_GET['id'])) {
                             <div id="medicamentoInfo" class="hidden mt-3"></div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                     <span class="text-red-500">*</span> Quantidade por Retirada

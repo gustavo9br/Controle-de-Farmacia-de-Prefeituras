@@ -211,7 +211,7 @@ $csrfToken = gerarCSRFToken();
                 <form method="post" class="space-y-6">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="create">
-                    <div class="grid gap-5 md:grid-cols-2">
+                    <div class="grid gap-5 grid-cols-1 sm:grid-cols-2">
                         <label class="flex flex-col gap-2">
                             <span class="text-sm font-medium text-slate-700">Nome completo <span class="text-rose-500">*</span></span>
                             <input type="text" name="nome" required class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500" placeholder="Ex: Maria da Silva" maxlength="255">
@@ -229,7 +229,7 @@ $csrfToken = gerarCSRFToken();
                             <input type="password" name="confirmar_senha" required class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500" minlength="6" placeholder="Repita a senha">
                         </label>
                     </div>
-                    <div class="grid gap-5 md:grid-cols-3">
+                    <div class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                         <label class="flex flex-col gap-2">
                             <span class="text-sm font-medium text-slate-700">Perfil de acesso <span class="text-rose-500">*</span></span>
                             <select name="tipo" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
@@ -247,7 +247,7 @@ $csrfToken = gerarCSRFToken();
                         </label>
                     </div>
                     <div class="flex justify-end">
-                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-8 py-3 text-white font-semibold shadow-lg hover:bg-primary-500 transition">
+                        <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-6 sm:px-8 py-3 text-white font-semibold shadow-lg hover:bg-primary-500 transition text-sm sm:text-base">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             Cadastrar usuário
                         </button>
@@ -256,36 +256,37 @@ $csrfToken = gerarCSRFToken();
             </section>
 
             <section class="space-y-6">
-                <div class="glass-card p-6 lg:p-8">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-slate-900">Usuários cadastrados</h2>
-                            <p class="text-sm text-slate-500">Gerencie perfis, status e redefina senhas dos usuários existentes.</p>
+                <div class="glass-card p-4 sm:p-6 lg:p-8">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                        <div class="flex-1 min-w-0">
+                            <h2 class="text-base sm:text-lg font-semibold text-slate-900">Usuários cadastrados</h2>
+                            <p class="text-xs sm:text-sm text-slate-500 mt-1">Gerencie perfis, status e redefina senhas dos usuários existentes.</p>
                         </div>
-                        <span class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400"><?php echo count($usuarios); ?> usuários</span>
+                        <span class="text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-400 whitespace-nowrap"><?php echo count($usuarios); ?> usuários</span>
                     </div>
 
-                    <div class="responsive-table-wrapper mt-6">
+                    <!-- Desktop Table -->
+                    <div class="hidden lg:block mt-6 overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-100 text-left">
                             <thead class="bg-white/60">
                                 <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-4 sm:px-6 py-3">Usuário</th>
-                                    <th class="px-4 sm:px-6 py-3">Perfil</th>
-                                    <th class="px-4 sm:px-6 py-3">Status</th>
-                                    <th class="px-4 sm:px-6 py-3">Último acesso</th>
-                                    <th class="px-4 sm:px-6 py-3">Ações</th>
+                                    <th class="px-6 py-3">Usuário</th>
+                                    <th class="px-6 py-3">Perfil</th>
+                                    <th class="px-6 py-3">Status</th>
+                                    <th class="px-6 py-3">Último acesso</th>
+                                    <th class="px-6 py-3">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white/80">
                                 <?php foreach ($usuarios as $usuario): ?>
                                     <?php $isSelf = (int) $usuario['id'] === $currentUserId; ?>
                                     <tr class="text-sm text-slate-600">
-                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-6 py-4">
                                             <div class="font-semibold text-slate-900"><?php echo htmlspecialchars($usuario['nome']); ?></div>
                                             <div class="text-xs text-slate-400"><?php echo htmlspecialchars($usuario['email']); ?></div>
                                             <div class="text-xs text-slate-400 mt-1">Cadastrado em <?php echo !empty($usuario['data_cadastro']) ? date('d/m/Y', strtotime($usuario['data_cadastro'])) : '—'; ?></div>
                                         </td>
-                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-6 py-4">
                                             <?php if ($isSelf): ?>
                                                 <span class="inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700">
                                                     <?php echo htmlspecialchars($allowedTypes[$usuario['tipo']] ?? ucfirst($usuario['tipo'])); ?>
@@ -307,17 +308,17 @@ $csrfToken = gerarCSRFToken();
                                                 </form>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-6 py-4">
                                             <?php if ($usuario['status'] === 'ativo'): ?>
                                                 <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Ativo</span>
                                             <?php else: ?>
                                                 <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Inativo</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500">
+                                        <td class="px-6 py-4 text-slate-500 text-xs">
                                             <?php echo !empty($usuario['ultimo_acesso']) ? date('d/m/Y H:i', strtotime($usuario['ultimo_acesso'])) : 'Nunca acessou'; ?>
                                         </td>
-                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <td class="px-6 py-4">
                                             <?php if ($isSelf): ?>
                                                 <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500" title="Você não pode alterar o próprio status.">
                                                     Ações indisponíveis
@@ -356,6 +357,96 @@ $csrfToken = gerarCSRFToken();
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div class="lg:hidden mt-6 space-y-4">
+                        <?php foreach ($usuarios as $usuario): ?>
+                            <?php $isSelf = (int) $usuario['id'] === $currentUserId; ?>
+                            <div class="bg-white/80 rounded-lg border border-slate-200 p-4 space-y-3">
+                                <div>
+                                    <div class="font-semibold text-slate-900 text-sm"><?php echo htmlspecialchars($usuario['nome']); ?></div>
+                                    <div class="text-xs text-slate-400 mt-1"><?php echo htmlspecialchars($usuario['email']); ?></div>
+                                    <div class="text-xs text-slate-400 mt-1">Cadastrado em <?php echo !empty($usuario['data_cadastro']) ? date('d/m/Y', strtotime($usuario['data_cadastro'])) : '—'; ?></div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-500">Perfil:</span>
+                                    <?php if ($isSelf): ?>
+                                        <span class="inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700">
+                                            <?php echo htmlspecialchars($allowedTypes[$usuario['tipo']] ?? ucfirst($usuario['tipo'])); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <form method="post" class="flex items-center gap-2 flex-1 justify-end">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="update_type">
+                                            <input type="hidden" name="user_id" value="<?php echo (int) $usuario['id']; ?>">
+                                            <select name="tipo" class="flex-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                                                <?php foreach ($allowedTypes as $key => $label): ?>
+                                                    <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $usuario['tipo'] === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <button type="submit" class="inline-flex items-center justify-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary-600 border border-primary-100 hover:bg-primary-50 transition">
+                                                Atualizar
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-500">Status:</span>
+                                    <?php if ($usuario['status'] === 'ativo'): ?>
+                                        <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Ativo</span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Inativo</span>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-500">Último acesso:</span>
+                                    <span class="text-xs text-slate-600"><?php echo !empty($usuario['ultimo_acesso']) ? date('d/m/Y H:i', strtotime($usuario['ultimo_acesso'])) : 'Nunca acessou'; ?></span>
+                                </div>
+                                
+                                <?php if (!$isSelf): ?>
+                                    <div class="flex gap-2 pt-2 border-t border-slate-100">
+                                        <form method="post" class="flex-1">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="toggle_status">
+                                            <input type="hidden" name="user_id" value="<?php echo (int) $usuario['id']; ?>">
+                                            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold <?php echo $usuario['status'] === 'ativo' ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'; ?> transition">
+                                                <?php if ($usuario['status'] === 'ativo'): ?>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364 5.636 5.636M18.364 5.636 5.636 18.364"/></svg>
+                                                    Desativar
+                                                <?php else: ?>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
+                                                    Ativar
+                                                <?php endif; ?>
+                                            </button>
+                                        </form>
+                                        <form method="post" onsubmit="return confirm('Gerar nova senha para <?php echo htmlspecialchars($usuario['nome']); ?>?');" class="flex-1">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="reset_password">
+                                            <input type="hidden" name="user_id" value="<?php echo (int) $usuario['id']; ?>">
+                                            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white border border-primary-200 px-3 py-2 text-xs font-semibold text-primary-600 hover:bg-primary-50 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12a7.5 7.5 0 0 1 13.43-4.387M19.5 12a7.5 7.5 0 0 1-13.43 4.387M12 9v3l1.5 1.5"/></svg>
+                                                Redefinir senha
+                                            </button>
+                                        </form>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="pt-2 border-t border-slate-100">
+                                        <span class="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500 w-full justify-center">
+                                            Ações indisponíveis para seu próprio perfil
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if (empty($usuarios)): ?>
+                            <div class="text-center py-8 text-sm text-slate-400">
+                                Nenhum usuário cadastrado até o momento.
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </section>

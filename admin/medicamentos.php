@@ -247,18 +247,18 @@ $pageTitle = 'Medicamentos cadastrados';
                     </div>
                 </div>
                 <div class="flex flex-col gap-3 lg:items-end">
-                    <span class="inline-flex items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm text-slate-500 shadow">
+                    <span class="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 sm:px-5 py-2 text-xs sm:text-sm text-slate-500 shadow">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
-                        <?php echo number_format($totalRecords, 0, ',', '.'); ?> medicamentos cadastrados
+                        <span class="whitespace-nowrap"><?php echo number_format($totalRecords, 0, ',', '.'); ?> medicamentos</span>
                     </span>
-                    <div class="flex flex-wrap gap-3">
-                        <a href="medicamentos_form.php" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
-                            Cadastrar medicamento
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                        <a href="medicamentos_form.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
+                            <span>Cadastrar medicamento</span>
                         </a>
-                        <a href="lotes.php" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-primary-600 font-semibold shadow hover:shadow-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 7.5h16.5M3.75 12h16.5M3.75 16.5h16.5"/></svg>
-                            Ver todos os lotes
+                        <a href="lotes.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-6 py-2.5 sm:py-3 text-primary-600 font-semibold shadow hover:shadow-lg transition text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 7.5h16.5M3.75 12h16.5M3.75 16.5h16.5"/></svg>
+                            <span>Ver todos os lotes</span>
                         </a>
                     </div>
                 </div>
@@ -278,30 +278,30 @@ $pageTitle = 'Medicamentos cadastrados';
                 </div>
             <?php endif; ?>
 
-            <section class="glass-card p-6 space-y-6">
-                <div class="grid gap-5 lg:grid-cols-12">
-                    <div class="lg:col-span-6">
-                        <label for="search" class="text-sm font-medium text-slate-600">Buscar por nome, descrição ou código de barras</label>
+            <section class="glass-card p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div class="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
+                    <div class="sm:col-span-2 lg:col-span-6">
+                        <label for="search" class="text-xs sm:text-sm font-medium text-slate-600">Buscar por nome, descrição ou código de barras</label>
                         <div class="relative mt-2">
-                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 pl-11 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite o nome, descrição ou código de barras..." autocomplete="off">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
-                            <div id="searchLoader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
-                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-4 sm:px-5 py-2.5 sm:py-3 pl-10 sm:pl-11 text-base text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite o nome, descrição ou código de barras..." autocomplete="off">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
+                            <div id="searchLoader" class="hidden absolute right-3 sm:right-4 top-1/2 -translate-y-1/2">
+                                <div class="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-primary-500"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="lg:col-span-3">
-                        <label for="filter_estoque" class="text-sm font-medium text-slate-600">Situação do estoque</label>
-                        <select id="filter_estoque" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
+                    <div class="sm:col-span-1 lg:col-span-3">
+                        <label for="filter_estoque" class="text-xs sm:text-sm font-medium text-slate-600">Situação do estoque</label>
+                        <select id="filter_estoque" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
                             <option value="">Todos</option>
                             <option value="baixo">Próximo ao mínimo</option>
                             <option value="zerado">Zerado</option>
                             <option value="disponivel">Disponível</option>
                         </select>
                     </div>
-                    <div class="lg:col-span-3">
-                        <label for="sort" class="text-sm font-medium text-slate-600">Ordenar por</label>
-                        <select id="sort" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
+                    <div class="sm:col-span-1 lg:col-span-3">
+                        <label for="sort" class="text-xs sm:text-sm font-medium text-slate-600">Ordenar por</label>
+                        <select id="sort" class="mt-2 w-full rounded-2xl border border-slate-100 bg-white px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500">
                             <option value="nome">Nome</option>
                             <option value="estoque_atual">Estoque</option>
                             <option value="proxima_validade">Validade</option>
@@ -393,9 +393,9 @@ $pageTitle = 'Medicamentos cadastrados';
                     </div>
 
                     <?php if ($totalPages > 1): ?>
-                        <nav class="flex items-center justify-between border-t border-white/60 bg-white/70 px-6 py-4">
-                            <span class="text-xs text-slate-400">Mostrando <?php echo min($perPage, $totalRecords - $offset); ?> de <?php echo $totalRecords; ?> registros</span>
-                            <ul class="flex items-center gap-2 text-sm">
+                        <nav class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 border-t border-white/60 bg-white/70 px-4 sm:px-6 py-3 sm:py-4">
+                            <span class="text-xs text-slate-400 text-center sm:text-left">Mostrando <?php echo min($perPage, $totalRecords - $offset); ?> de <?php echo $totalRecords; ?> registros</span>
+                            <ul class="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm flex-wrap justify-center">
                                 <?php
                                     $queryParams = $_GET;
                                     $rangeStart = max(1, $page - 2);

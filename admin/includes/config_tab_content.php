@@ -4,10 +4,10 @@
 ?>
 
 <!-- Formulário -->
-<div class="glass-card p-6 mb-6">
-    <h2 class="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+<div class="glass-card p-4 sm:p-6 mb-6">
+    <h2 class="text-base sm:text-lg font-semibold text-slate-900 mb-4 sm:mb-6 flex items-center gap-2">
         <?php echo $config['icon']; ?>
-        <?php echo $edit_id > 0 ? 'Editar ' . $config['title'] : 'Adicionar ' . $config['title']; ?>
+        <span><?php echo $edit_id > 0 ? 'Editar ' . $config['title'] : 'Adicionar ' . $config['title']; ?></span>
     </h2>
     
     <form method="post" class="space-y-5">
@@ -19,7 +19,7 @@
         
         <?php if ($config['form_type'] === 'fabricante'): ?>
             <!-- Formulário de Fabricante -->
-            <div class="grid gap-5 sm:grid-cols-2">
+            <div class="grid gap-5 grid-cols-1 sm:grid-cols-2">
                 <div>
                     <label for="nome" class="block text-sm font-medium text-slate-700 mb-2">
                         Nome <span class="text-rose-500">*</span>
@@ -34,7 +34,7 @@
                 </div>
             </div>
             
-            <div class="grid gap-5 sm:grid-cols-2">
+            <div class="grid gap-5 grid-cols-1 sm:grid-cols-2">
                 <div>
                     <label for="telefone" class="block text-sm font-medium text-slate-700 mb-2">Telefone</label>
                     <input type="text" id="telefone" name="telefone" value="<?php echo isset($edit_data['telefone']) ? htmlspecialchars($edit_data['telefone']) : ''; ?>" 
@@ -61,7 +61,7 @@
             
         <?php elseif ($config['form_type'] === 'unidade'): ?>
             <!-- Formulário de Apresentação -->
-            <div class="grid gap-5 sm:grid-cols-3">
+            <div class="grid gap-5 grid-cols-1 sm:grid-cols-3">
                 <div class="sm:col-span-2">
                     <label for="nome" class="block text-sm font-medium text-slate-700 mb-2">
                         Nome <span class="text-rose-500">*</span>
@@ -101,14 +101,14 @@
             </div>
         <?php endif; ?>
         
-        <div class="flex items-center gap-3 pt-2">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
             <?php if ($edit_id > 0): ?>
-                <a href="?tab=<?php echo $active_tab; ?>" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-slate-600 font-semibold shadow hover:shadow-lg transition">
+                <a href="?tab=<?php echo $active_tab; ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-6 py-2.5 sm:py-3 text-slate-600 font-semibold shadow hover:shadow-lg transition text-sm sm:text-base">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     Cancelar
                 </a>
             <?php endif; ?>
-            <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
+            <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition text-sm sm:text-base">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 <?php echo $edit_id > 0 ? 'Atualizar' : 'Salvar'; ?>
             </button>
@@ -118,12 +118,12 @@
 
 <!-- Tabela -->
 <div class="glass-card p-0 overflow-hidden">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
-        <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/60 bg-white/70">
+        <h2 class="text-base sm:text-lg font-semibold text-slate-900 flex items-center gap-2">
             <?php echo $config['icon']; ?>
-            <?php echo $config['title']; ?>s Cadastrados
+            <span><?php echo $config['title']; ?>s Cadastrados</span>
         </h2>
-        <span class="rounded-full bg-primary-50 px-4 py-1 text-sm font-medium text-primary-600">
+        <span class="rounded-full bg-primary-50 px-3 sm:px-4 py-1 text-xs sm:text-sm font-medium text-primary-600 whitespace-nowrap">
             <?php echo count($config['data']); ?> registros
         </span>
     </div>

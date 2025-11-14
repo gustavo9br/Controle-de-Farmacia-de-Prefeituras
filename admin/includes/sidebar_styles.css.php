@@ -2,7 +2,8 @@
 /* Arquivo de estilo compartilhado para os sidebars do painel - Glass Design */
 ?>
 /* Mobile Menu Button */
-.mobile-menu-btn {
+.mobile-menu-btn,
+.mobile-menu-button {
     position: fixed;
     top: 1rem;
     left: 1rem;
@@ -17,16 +18,20 @@
     display: none;
     transition: all 0.3s;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 3rem;
+    height: 3rem;
 }
 
-.mobile-menu-btn:hover {
+.mobile-menu-btn:hover,
+.mobile-menu-button:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
     background: rgba(255, 255, 255, 1);
 }
 
 @media (max-width: 1023px) {
-    .mobile-menu-btn {
+    .mobile-menu-btn,
+    .mobile-menu-button {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -421,6 +426,16 @@
     
     .sidebar-toggle-btn {
         display: none !important;
+    }
+    
+    /* Ajustar posicionamento do logo no mobile para aparecer quando menu estiver aberto */
+    .sidebar-header {
+        padding-left: 4.5rem; /* Espaço para o botão do menu mobile (3rem) + margem (1.5rem) */
+        padding-right: 1.25rem;
+    }
+    
+    .sidebar-brand {
+        margin-left: 0;
     }
 }
 

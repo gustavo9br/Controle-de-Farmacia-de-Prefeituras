@@ -273,34 +273,39 @@ $pageTitle = 'Gerenciamento de lotes';
     <link rel="stylesheet" href="../css/admin_new.css">
 </head>
 <body class="admin-shell">
+    <button id="mobileMenuButton" class="mobile-menu-button" aria-label="Abrir menu">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
     <div class="flex min-h-screen">
         <?php include __DIR__ . '/includes/sidebar.php'; ?>
-        <main class="flex-1 px-6 py-10 lg:px-12 space-y-10">
-            <header class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div class="space-y-3">
-                    <span class="text-sm uppercase tracking-[0.3em] text-slate-500">Lotes</span>
+        <main class="content-area">
+            <div class="space-y-10">
+            <header class="flex flex-col gap-4 lg:gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div class="space-y-2 sm:space-y-3">
+                    <span class="text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-500">Lotes</span>
                     <div>
-                        <h1 class="text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($pageTitle); ?></h1>
-                        <p class="mt-2 text-slate-500 max-w-2xl">Controle de lotes cadastrados, validade e estoque disponível por lote de medicamento.</p>
+                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($pageTitle); ?></h1>
+                        <p class="mt-2 text-sm sm:text-base text-slate-500 max-w-2xl">Controle de lotes cadastrados, validade e estoque disponível por lote de medicamento.</p>
                     </div>
                 </div>
                 <div class="flex flex-col gap-3 lg:items-end">
-                    <span class="inline-flex items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm text-slate-500 shadow">
+                    <span class="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 sm:px-5 py-2 text-xs sm:text-sm text-slate-500 shadow">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
-                        <?php echo number_format($totalRecords, 0, ',', '.'); ?> lotes cadastrados
+                        <span class="whitespace-nowrap"><?php echo number_format($totalRecords, 0, ',', '.'); ?> lotes</span>
                     </span>
-                    <div class="flex flex-wrap gap-3 justify-end">
-                        <button onclick="document.getElementById('addLoteModal').classList.remove('hidden'); document.getElementById('codigo_barras_scanner').focus();" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
-                            Adicionar Lote
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                        <button onclick="document.getElementById('addLoteModal').classList.remove('hidden'); document.getElementById('codigo_barras_scanner').focus();" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
+                            <span>Adicionar Lote</span>
                         </button>
-                        <a href="lotes_zerados.php" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-gray-600 font-semibold shadow hover:shadow-lg transition border border-gray-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5m16 0h-2.586a1 1 0 0 0-.707.293l-2.414 2.414a1 1 0 0 1-.707.293h-3.172a1 1 0 0 1-.707-.293l-2.414-2.414A1 1 0 0 0 6.586 13H4"/></svg>
-                            Lotes Zerados
+                        <a href="lotes_zerados.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-6 py-2.5 sm:py-3 text-gray-600 font-semibold shadow hover:shadow-lg transition border border-gray-200 text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5m16 0h-2.586a1 1 0 0 0-.707.293l-2.414 2.414a1 1 0 0 1-.707.293h-3.172a1 1 0 0 1-.707-.293l-2.414-2.414A1 1 0 0 0 6.586 13H4"/></svg>
+                            <span>Lotes Zerados</span>
                         </a>
-                        <a href="relatorios.php?tipo=vencimento" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-amber-600 font-semibold shadow hover:shadow-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9z"/></svg>
-                            Controle de validades
+                        <a href="relatorios.php?tipo=vencimento" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-6 py-2.5 sm:py-3 text-amber-600 font-semibold shadow hover:shadow-lg transition text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9z"/></svg>
+                            <span>Controle de validades</span>
                         </a>
                     </div>
                 </div>
@@ -320,15 +325,15 @@ $pageTitle = 'Gerenciamento de lotes';
                 </div>
             <?php endif; ?>
 
-            <section class="glass-card p-6 space-y-6">
-                <div class="grid gap-5 lg:grid-cols-12">
+            <section class="glass-card p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div class="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-12">
                     <div class="lg:col-span-6">
-                        <label for="search" class="text-sm font-medium text-slate-600">Buscar por lote, código de barras, medicamento ou fornecedor</label>
+                        <label for="search" class="text-xs sm:text-sm font-medium text-slate-600">Buscar por lote, código de barras, medicamento ou fornecedor</label>
                         <div class="relative mt-2">
-                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 pl-11 text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite o número do lote, código de barras, nome do medicamento ou fornecedor..." autocomplete="off">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
-                            <div id="searchLoader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
-                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-4 sm:px-5 py-2.5 sm:py-3 pl-10 sm:pl-11 text-base text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite o número do lote, código de barras, nome do medicamento ou fornecedor..." autocomplete="off">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
+                            <div id="searchLoader" class="hidden absolute right-3 sm:right-4 top-1/2 -translate-y-1/2">
+                                <div class="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-primary-500"></div>
                             </div>
                         </div>
                     </div>
@@ -336,9 +341,9 @@ $pageTitle = 'Gerenciamento de lotes';
             </section>
 
             <section class="glass-card p-0 overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
-                    <h2 class="text-lg font-semibold text-slate-900">Lista de lotes</h2>
-                    <span id="totalInfo" class="rounded-full bg-primary-50 px-4 py-1 text-sm font-medium text-primary-600"><?php echo number_format($totalRecords, 0, ',', '.'); ?> lotes</span>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/60 bg-white/70">
+                    <h2 class="text-base sm:text-lg font-semibold text-slate-900">Lista de lotes</h2>
+                    <span id="totalInfo" class="rounded-full bg-primary-50 px-3 sm:px-4 py-1 text-xs sm:text-sm font-medium text-primary-600 whitespace-nowrap"><?php echo number_format($totalRecords, 0, ',', '.'); ?> lotes</span>
                 </div>
                 <div id="lotesContainer">
                 <?php if (count($lotes) > 0): ?>
@@ -426,43 +431,48 @@ $pageTitle = 'Gerenciamento de lotes';
                     </div>
 
                     <!-- Mobile cards -->
-                    <div class="lg:hidden divide-y divide-slate-100">
+                    <div class="lg:hidden space-y-4">
                         <?php foreach ($lotes as $lote): ?>
                             <?php
                                 $dias_para_vencer = isset($lote['dias_para_vencer']) ? (int)$lote['dias_para_vencer'] : null;
                                 $quantidade_atual = (int)($lote['quantidade_atual'] ?? 0);
                             ?>
-                            <div class="p-5 bg-white/80 space-y-3">
+                            <div class="bg-white/80 rounded-lg border border-slate-200 p-4 sm:p-5 space-y-3 shadow-sm hover:shadow-md transition-all">
                                 <div class="flex items-start justify-between">
-                                    <div>
-                                        <p class="text-xs text-slate-500 uppercase tracking-wide">Lote</p>
-                                        <p class="font-semibold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></p>
+                                    <div class="flex-1">
+                                        <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Lote</p>
+                                        <p class="text-lg font-bold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></p>
+                                        <?php if (!empty($lote['nota_fiscal'])): ?>
+                                            <p class="text-xs text-slate-400 mt-1">NF: <?php echo htmlspecialchars($lote['nota_fiscal']); ?></p>
+                                        <?php endif; ?>
                                     </div>
-                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo stockBadgeClass($quantidade_atual); ?>">
-                                        <?php echo $quantidade_atual; ?>
+                                    <span class="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold <?php echo stockBadgeClass($quantidade_atual); ?> whitespace-nowrap ml-3">
+                                        <?php echo $quantidade_atual; ?> un
                                     </span>
                                 </div>
                                 
-                                <div>
-                                    <p class="text-xs text-slate-500 uppercase tracking-wide">Medicamento</p>
-                                    <p class="font-medium text-slate-900"><?php echo htmlspecialchars($lote['medicamento_nome']); ?></p>
+                                <div class="pt-2 border-t border-slate-100">
+                                    <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Medicamento</p>
+                                    <p class="font-semibold text-slate-900 text-sm"><?php echo htmlspecialchars($lote['medicamento_nome']); ?></p>
                                     <?php if (!empty($lote['codigo_barras'])): ?>
-                                        <p class="text-xs text-slate-400 mt-1 font-mono">Código: <?php echo htmlspecialchars($lote['codigo_barras']); ?></p>
+                                        <p class="text-xs text-slate-500 mt-1 font-mono">Código: <?php echo htmlspecialchars($lote['codigo_barras']); ?></p>
                                     <?php endif; ?>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-3">
+                                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                                     <div>
-                                        <p class="text-xs text-slate-500">Recebimento</p>
-                                        <p class="text-sm text-slate-700"><?php echo htmlspecialchars(formatarData($lote['data_recebimento'])); ?></p>
+                                        <p class="text-xs text-slate-500 mb-1">Recebimento</p>
+                                        <p class="text-sm font-medium text-slate-700"><?php echo htmlspecialchars(formatarData($lote['data_recebimento'])); ?></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">Validade</p>
+                                        <p class="text-sm font-medium text-slate-700"><?php echo htmlspecialchars(formatarData($lote['data_validade'])); ?></p>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Validade</p>
-                                    <p class="text-sm text-slate-700 mb-2"><?php echo htmlspecialchars(formatarData($lote['data_validade'])); ?></p>
-                                    <?php if ($dias_para_vencer !== null): ?>
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold <?php echo validityBadgeClass($dias_para_vencer); ?>">
+                                <?php if ($dias_para_vencer !== null): ?>
+                                    <div class="pt-2">
+                                        <span class="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold <?php echo validityBadgeClass($dias_para_vencer); ?>">
                                             <?php 
                                                 if ($dias_para_vencer < 0) {
                                                     echo 'Vencido há ' . abs($dias_para_vencer) . ' dias';
@@ -471,21 +481,21 @@ $pageTitle = 'Gerenciamento de lotes';
                                                 }
                                             ?>
                                         </span>
-                                    <?php endif; ?>
-                                </div>
+                                    </div>
+                                <?php endif; ?>
 
-                                <div class="flex gap-2 pt-2 border-t border-slate-100">
-                                    <a href="medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>" class="action-chip flex-1 justify-center" title="Ver lotes">
+                                <div class="flex gap-2 pt-3 border-t border-slate-200">
+                                    <a href="medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md" title="Ver lotes">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12s3.75-6.75 9.75-6.75 9.75 6.75 9.75 6.75-3.75 6.75-9.75 6.75S2.25 12 2.25 12z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15.375a3.375 3.375 0 1 0 0-6.75 3.375 3.375 0 0 0 0 6.75z"/></svg>
-                                        Ver
+                                        <span>Ver</span>
                                     </a>
-                                    <form method="post" class="flex-1" onsubmit="return confirm('Confirma a exclusão do lote?');">
+                                    <form method="post" class="flex-1" onsubmit="return confirm('Confirma a exclusão do lote <?php echo htmlspecialchars($lote['numero_lote'], ENT_QUOTES); ?>?');">
                                         <input type="hidden" name="delete_lote" value="1">
                                         <input type="hidden" name="lote_id" value="<?php echo (int)$lote['id']; ?>">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                        <button type="submit" class="action-chip danger w-full justify-center" title="Excluir">
+                                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md" title="Excluir lote">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
-                                            Excluir
+                                            <span>Excluir</span>
                                         </button>
                                     </form>
                                 </div>
@@ -494,9 +504,9 @@ $pageTitle = 'Gerenciamento de lotes';
                     </div>
 
                     <?php if ($totalPages > 1): ?>
-                        <nav class="flex items-center justify-between border-t border-white/60 bg-white/70 px-6 py-4">
-                            <span class="text-xs text-slate-400">Mostrando <?php echo min($perPage, $totalRecords - $offset); ?> de <?php echo $totalRecords; ?> registros</span>
-                            <ul class="flex items-center gap-2 text-sm">
+                        <nav class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 border-t border-white/60 bg-white/70 px-4 sm:px-6 py-3 sm:py-4">
+                            <span class="text-xs text-slate-400 text-center sm:text-left">Mostrando <?php echo min($perPage, $totalRecords - $offset); ?> de <?php echo $totalRecords; ?> registros</span>
+                            <ul class="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm flex-wrap justify-center">
                                 <?php
                                     $queryParams = $_GET;
                                     $rangeStart = max(1, $page - 2);
@@ -534,6 +544,7 @@ $pageTitle = 'Gerenciamento de lotes';
                 <?php endif; ?>
                 </div>
             </section>
+            </div>
         </main>
     </div>
 

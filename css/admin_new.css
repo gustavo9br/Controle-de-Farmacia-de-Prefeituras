@@ -28,6 +28,7 @@ body.admin-shell {
     
     .content-area {
         padding: 1rem;
+        padding-top: 4.5rem; /* Espaço para o menu mobile (1rem top + 3rem altura do botão + 0.5rem margem) */
     }
 }
 

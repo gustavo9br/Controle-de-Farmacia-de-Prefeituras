@@ -86,7 +86,7 @@ $pageTitle = "Dispensação de Medicamentos";
                             type="text" 
                             id="pacienteSearch" 
                             placeholder="🔍 Nome, CPF ou SUS..." 
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm"
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base"
                             autocomplete="off"
                         >
                         
@@ -116,7 +116,7 @@ $pageTitle = "Dispensação de Medicamentos";
                     <textarea 
                         id="observacoes" 
                         placeholder="Observações (opcional)..." 
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-sm resize-none mb-3"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-base resize-none mb-3"
                         rows="2"
                     ></textarea>
                     
@@ -140,7 +140,7 @@ $pageTitle = "Dispensação de Medicamentos";
                         type="text" 
                         id="medicamentoSearch" 
                         placeholder="🔍 Digite o código de barras ou nome do medicamento..." 
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
                         autocomplete="off"
                     >
                     
