@@ -38,15 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $fornecedor = trim($_POST['fornecedor'] ?? '');
                     $nota_fiscal = trim($_POST['nota_fiscal'] ?? '');
                     $observacoes = trim($_POST['observacoes'] ?? '');
+                    $usar_lote_existente = isset($_POST['usar_lote_existente']) && $_POST['usar_lote_existente'] === '1';
+                    $lote_existente_id = isset($_POST['lote_existente_id']) ? (int)$_POST['lote_existente_id'] : 0;
                     
                     if (empty($codigo_barras)) {
                         throw new RuntimeException("O código de barras é obrigatório.");
-                    }
-                    if (empty($numero_lote)) {
-                        throw new RuntimeException("O número do lote é obrigatório.");
-                    }
-                    if (empty($data_recebimento) || empty($data_validade)) {
-                        throw new RuntimeException("As datas de recebimento e validade são obrigatórias.");
                     }
                     if ($quantidade_total <= 0) {
                         throw new RuntimeException("A quantidade total deve ser maior que zero.");
@@ -68,44 +64,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $codigo_barras_id = (int)$conn->lastInsertId();
                     }
                     
-                    // 3. Verificar se o lote já existe para este código de barras e medicamento
-                    $stmt = $conn->prepare("SELECT id, quantidade_atual FROM lotes WHERE codigo_barras_id = ? AND medicamento_id = ? AND numero_lote = ?");
-                    $stmt->execute([$codigo_barras_id, $med_id, $numero_lote]);
-                    $lote_existente = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    if ($lote_existente) {
-                        // Reutilizar lote existente: atualizar dados e adicionar quantidade
-                        $lote_id = $lote_existente['id'];
-                        $quantidade_atual_anterior = (int)$lote_existente['quantidade_atual'];
+                    // Se está usando um lote existente selecionado, apenas adicionar quantidade
+                    if ($usar_lote_existente && $lote_existente_id > 0) {
+                        $stmt = $conn->prepare("SELECT id, quantidade_atual FROM lotes WHERE id = ? AND medicamento_id = ? AND codigo_barras_id = ?");
+                        $stmt->execute([$lote_existente_id, $med_id, $codigo_barras_id]);
+                        $lote_selecionado = $stmt->fetch(PDO::FETCH_ASSOC);
+                        
+                        if (!$lote_selecionado) {
+                            throw new RuntimeException("Lote selecionado não encontrado.");
+                        }
+                        
+                        // Atualizar apenas a quantidade e data de recebimento (se for mais recente)
+                        $quantidade_atual_anterior = (int)$lote_selecionado['quantidade_atual'];
                         $nova_quantidade_atual = $quantidade_atual_anterior + $quantidade_total;
                         
+                        // Verificar se a nova data de recebimento é mais recente
+                        $stmt = $conn->prepare("SELECT data_recebimento FROM lotes WHERE id = ?");
+                        $stmt->execute([$lote_existente_id]);
+                        $data_recebimento_anterior = $stmt->fetchColumn();
+                        
+                        $data_recebimento_final = $data_recebimento;
+                        if ($data_recebimento_anterior && $data_recebimento_anterior > $data_recebimento) {
+                            $data_recebimento_final = $data_recebimento_anterior;
+                        }
+                        
                         $sql = "UPDATE lotes SET 
-                                data_recebimento = ?, 
-                                data_validade = ?, 
                                 quantidade_atual = ?,
-                                fornecedor = ?,
-                                nota_fiscal = ?,
-                                observacoes = ?,
+                                data_recebimento = ?,
                                 atualizado_em = NOW()
                                 WHERE id = ?";
                         
                         $stmt = $conn->prepare($sql);
                         $stmt->execute([
-                            $data_recebimento, $data_validade, $nova_quantidade_atual,
-                            $fornecedor, $nota_fiscal, $observacoes, $lote_id
+                            $nova_quantidade_atual,
+                            $data_recebimento_final,
+                            $lote_existente_id
                         ]);
-                    } else {
-                        // 4. Inserir novo lote (ligado ao código de barras)
-                        // quantidade_caixas e quantidade_por_caixa não são mais usados (valores padrão 0)
-                        $sql = "INSERT INTO lotes (codigo_barras_id, medicamento_id, numero_lote, data_recebimento, data_validade, 
-                                quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
                         
-                        $stmt = $conn->prepare($sql);
-                        $stmt->execute([
-                            $codigo_barras_id, $med_id, $numero_lote, $data_recebimento, $data_validade,
-                            $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
-                        ]);
+                        $mensagem_sucesso = "Quantidade adicionada ao lote existente com sucesso!";
+                    } else {
+                        // Criar novo lote
+                        if (empty($numero_lote)) {
+                            throw new RuntimeException("O número do lote é obrigatório.");
+                        }
+                        if (empty($data_recebimento) || empty($data_validade)) {
+                            throw new RuntimeException("As datas de recebimento e validade são obrigatórias.");
+                        }
+                        
+                        // 3. Verificar se o lote já existe para este código de barras e medicamento
+                        $stmt = $conn->prepare("SELECT id, quantidade_atual FROM lotes WHERE codigo_barras_id = ? AND medicamento_id = ? AND numero_lote = ?");
+                        $stmt->execute([$codigo_barras_id, $med_id, $numero_lote]);
+                        $lote_existente = $stmt->fetch(PDO::FETCH_ASSOC);
+                        
+                        if ($lote_existente) {
+                            // Reutilizar lote existente: atualizar dados e adicionar quantidade
+                            $lote_id = $lote_existente['id'];
+                            $quantidade_atual_anterior = (int)$lote_existente['quantidade_atual'];
+                            $nova_quantidade_atual = $quantidade_atual_anterior + $quantidade_total;
+                            
+                            $sql = "UPDATE lotes SET 
+                                    data_recebimento = ?, 
+                                    data_validade = ?, 
+                                    quantidade_atual = ?,
+                                    fornecedor = ?,
+                                    nota_fiscal = ?,
+                                    observacoes = ?,
+                                    atualizado_em = NOW()
+                                    WHERE id = ?";
+                            
+                            $stmt = $conn->prepare($sql);
+                            $stmt->execute([
+                                $data_recebimento, $data_validade, $nova_quantidade_atual,
+                                $fornecedor, $nota_fiscal, $observacoes, $lote_id
+                            ]);
+                            
+                            $mensagem_sucesso = "Lote reutilizado e atualizado com sucesso! A quantidade foi adicionada ao lote existente.";
+                        } else {
+                            // 4. Inserir novo lote (ligado ao código de barras)
+                            $sql = "INSERT INTO lotes (codigo_barras_id, medicamento_id, numero_lote, data_recebimento, data_validade, 
+                                    quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                            
+                            $stmt = $conn->prepare($sql);
+                            $stmt->execute([
+                                $codigo_barras_id, $med_id, $numero_lote, $data_recebimento, $data_validade,
+                                $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
+                            ]);
+                            
+                            $mensagem_sucesso = "Lote adicionado com sucesso!";
+                        }
                     }
                     
                     // 5. Atualizar estoque do medicamento (soma de todos os lotes de todos os códigos de barras)
@@ -122,12 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$estoque_total, $med_id]);
                     
                     $conn->commit();
-                    
-                    if ($lote_existente) {
-                        $_SESSION['success'] = "Lote reutilizado e atualizado com sucesso! A quantidade foi adicionada ao lote existente.";
-                    } else {
-                        $_SESSION['success'] = "Lote adicionado com sucesso!";
-                    }
+                    $_SESSION['success'] = $mensagem_sucesso;
                     
                     // Se veio de lotes.php, redirecionar de volta
                     if (isset($_POST['from_lotes']) && $_POST['from_lotes'] === '1') {
@@ -143,7 +185,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $numero_lote = trim($_POST['numero_lote'] ?? '');
                     $data_recebimento = trim($_POST['data_recebimento'] ?? '');
                     $data_validade = trim($_POST['data_validade'] ?? '');
-                    $quantidade_total = (int)($_POST['quantidade_total'] ?? 0);
                     $quantidade_atual = (int)($_POST['quantidade_atual'] ?? 0);
                     $fornecedor = trim($_POST['fornecedor'] ?? '');
                     $nota_fiscal = trim($_POST['nota_fiscal'] ?? '');
@@ -157,9 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     if (empty($data_recebimento) || empty($data_validade)) {
                         throw new RuntimeException("As datas de recebimento e validade são obrigatórias.");
-                    }
-                    if ($quantidade_total <= 0) {
-                        throw new RuntimeException("A quantidade total deve ser maior que zero.");
                     }
                     if ($quantidade_atual < 0) {
                         throw new RuntimeException("A quantidade atual não pode ser negativa.");
@@ -737,7 +775,23 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                         <input type="text" name="codigo_barras" id="codigo_barras_input" value="<?php echo $lote_edit && isset($lote_edit['codigo_barras']) ? htmlspecialchars($lote_edit['codigo_barras']) : ''; ?>" placeholder="Digite ou escaneie o código de barras" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500" required autofocus>
                         <span class="text-xs text-slate-400 mt-1 block">Se o código não existir, será criado automaticamente para este medicamento.</span>
                     </div>
+                    
+                    <!-- Área para mostrar lotes existentes -->
+                    <div id="lotesExistentesContainer" class="hidden">
+                        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-sm font-semibold text-sky-900">Lotes existentes para este código de barras</h4>
+                                <button type="button" id="btnNovoLote" class="text-xs text-sky-600 hover:text-sky-700 font-medium hidden">Criar novo lote</button>
+                            </div>
+                            <div id="lotesExistentesLista" class="space-y-2 max-h-60 overflow-y-auto">
+                                <!-- Lotes serão inseridos aqui via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                
+                <input type="hidden" name="lote_existente_id" id="lote_existente_id" value="">
+                <input type="hidden" name="usar_lote_existente" id="usar_lote_existente" value="0">
 
                 <div class="grid gap-6 md:grid-cols-2">
                     <div>
@@ -805,25 +859,255 @@ $pageTitle = 'Gerenciar lotes do medicamento';
 
     <script src="js/sidebar.js" defer></script>
     <script>
+        const medId = <?php echo $med_id; ?>;
+        const isEditMode = <?php echo $lote_edit ? 'true' : 'false'; ?>;
+        let timeoutBuscarLotes = null;
+        
         // Permitir digitar novo código de barras ou selecionar existente
         const codigoBarrasSelect = document.getElementById('codigo_barras');
         const codigoBarrasInput = document.getElementById('codigo_barras_input');
+        const lotesExistentesContainer = document.getElementById('lotesExistentesContainer');
+        const lotesExistentesLista = document.getElementById('lotesExistentesLista');
+        const btnNovoLote = document.getElementById('btnNovoLote');
+        const loteExistenteId = document.getElementById('lote_existente_id');
+        const usarLoteExistente = document.getElementById('usar_lote_existente');
+        
+        // Se estiver no modo de edição, esconder a área de lotes existentes
+        if (isEditMode && lotesExistentesContainer) {
+            lotesExistentesContainer.classList.add('hidden');
+        }
+        
+        // Função para buscar lotes existentes
+        function buscarLotesExistentes(codigoBarras) {
+            if (!codigoBarras || codigoBarras.trim() === '') {
+                lotesExistentesContainer.classList.add('hidden');
+                return;
+            }
+            
+            fetch(`api/buscar_lotes_por_codigo.php?medicamento_id=${medId}&codigo_barras=${encodeURIComponent(codigoBarras)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.lotes && data.lotes.length > 0) {
+                        mostrarLotesExistentes(data.lotes);
+                    } else {
+                        lotesExistentesContainer.classList.add('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar lotes:', error);
+                    lotesExistentesContainer.classList.add('hidden');
+                });
+        }
+        
+        // Função para mostrar lotes existentes
+        function mostrarLotesExistentes(lotes) {
+            lotesExistentesLista.innerHTML = '';
+            
+            lotes.forEach(lote => {
+                const diasVenc = parseInt(lote.dias_para_vencer) || 0;
+                let badgeClass = 'bg-emerald-100 text-emerald-600';
+                let badgeText = `Vence em ${diasVenc} dias`;
+                
+                if (diasVenc < 0) {
+                    badgeClass = 'bg-rose-100 text-rose-600';
+                    badgeText = `Vencido há ${Math.abs(diasVenc)} dias`;
+                } else if (diasVenc <= 30) {
+                    badgeClass = 'bg-amber-100 text-amber-700';
+                } else if (diasVenc <= 90) {
+                    badgeClass = 'bg-sky-100 text-sky-700';
+                }
+                
+                const loteCard = document.createElement('div');
+                loteCard.className = 'bg-white rounded-xl p-3 border border-sky-200 hover:border-sky-300 cursor-pointer transition';
+                loteCard.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold text-slate-900">Lote: ${lote.numero_lote}</span>
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass}">
+                                    ${badgeText}
+                                </span>
+                            </div>
+                            <div class="text-xs text-slate-600 space-y-0.5">
+                                <p>Validade: ${lote.data_validade_formatada}</p>
+                                <p>Recebimento: ${lote.data_recebimento_formatada}</p>
+                                <p>Qtd. Atual: <span class="font-semibold">${lote.quantidade_atual}</span></p>
+                                ${lote.fornecedor ? `<p>Fornecedor: ${lote.fornecedor}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                loteCard.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    selecionarLoteExistente(lote, e);
+                });
+                lotesExistentesLista.appendChild(loteCard);
+            });
+            
+            lotesExistentesContainer.classList.remove('hidden');
+            btnNovoLote.classList.remove('hidden');
+        }
+        
+        // Função para selecionar um lote existente
+        function selecionarLoteExistente(lote, event = null) {
+            if (isEditMode) return; // Não fazer nada se estiver editando
+            
+            // Preencher campos com dados do lote (verificando se existem)
+            const numeroLote = document.getElementById('numero_lote');
+            const dataValidade = document.getElementById('data_validade');
+            const dataRecebimento = document.getElementById('data_recebimento');
+            const fornecedor = document.getElementById('fornecedor');
+            const notaFiscal = document.getElementById('nota_fiscal');
+            const observacoes = document.getElementById('observacoes');
+            const quantidadeTotal = document.getElementById('quantidade_total');
+            
+            if (numeroLote) {
+                numeroLote.value = lote.numero_lote;
+                numeroLote.readOnly = true;
+            }
+            if (dataValidade) {
+                dataValidade.value = lote.data_validade;
+                dataValidade.readOnly = true;
+            }
+            if (dataRecebimento) {
+                dataRecebimento.value = lote.data_recebimento;
+                dataRecebimento.readOnly = true;
+            }
+            if (fornecedor) {
+                fornecedor.value = lote.fornecedor || '';
+                fornecedor.readOnly = true;
+            }
+            if (notaFiscal) {
+                notaFiscal.value = lote.nota_fiscal || '';
+                notaFiscal.readOnly = true;
+            }
+            if (observacoes) {
+                observacoes.value = lote.observacoes || '';
+                observacoes.readOnly = true;
+            }
+            
+            // Marcar que está usando lote existente
+            if (loteExistenteId) loteExistenteId.value = lote.id;
+            if (usarLoteExistente) usarLoteExistente.value = '1';
+            
+            // Destacar o lote selecionado
+            if (lotesExistentesLista) {
+                lotesExistentesLista.querySelectorAll('div').forEach(card => {
+                    card.classList.remove('ring-2', 'ring-primary-500', 'border-primary-500');
+                });
+                // Adicionar destaque ao card clicado
+                if (event && event.currentTarget) {
+                    event.currentTarget.classList.add('ring-2', 'ring-primary-500', 'border-primary-500');
+                }
+            }
+            
+            // Focar no campo de quantidade
+            if (quantidadeTotal) quantidadeTotal.focus();
+        }
+        
+        // Função para criar novo lote
+        function criarNovoLote() {
+            if (isEditMode) return; // Não fazer nada se estiver editando
+            
+            // Limpar seleção
+            if (loteExistenteId) loteExistenteId.value = '';
+            if (usarLoteExistente) usarLoteExistente.value = '0';
+            
+            // Limpar campos (verificando se existem)
+            const numeroLote = document.getElementById('numero_lote');
+            const dataValidade = document.getElementById('data_validade');
+            const dataRecebimento = document.getElementById('data_recebimento');
+            const fornecedor = document.getElementById('fornecedor');
+            const notaFiscal = document.getElementById('nota_fiscal');
+            const observacoes = document.getElementById('observacoes');
+            const quantidadeTotal = document.getElementById('quantidade_total');
+            
+            if (numeroLote) {
+                numeroLote.value = '';
+                numeroLote.readOnly = false;
+            }
+            if (dataValidade) {
+                dataValidade.value = '';
+                dataValidade.readOnly = false;
+            }
+            if (dataRecebimento) {
+                dataRecebimento.value = '<?php echo date('Y-m-d'); ?>';
+                dataRecebimento.readOnly = false;
+            }
+            if (fornecedor) {
+                fornecedor.value = '';
+                fornecedor.readOnly = false;
+            }
+            if (notaFiscal) {
+                notaFiscal.value = '';
+                notaFiscal.readOnly = false;
+            }
+            if (observacoes) {
+                observacoes.value = '';
+                observacoes.readOnly = false;
+            }
+            if (quantidadeTotal) {
+                quantidadeTotal.value = '1';
+            }
+            
+            // Remover destaque dos lotes
+            if (lotesExistentesLista) {
+                lotesExistentesLista.querySelectorAll('div').forEach(card => {
+                    card.classList.remove('ring-2', 'ring-primary-500', 'border-primary-500');
+                });
+            }
+            
+            // Focar no número do lote
+            if (numeroLote) numeroLote.focus();
+        }
         
         if (codigoBarrasSelect && codigoBarrasInput) {
-            // Quando selecionar um código existente, preencher o input
+            // Quando selecionar um código existente, preencher o input e buscar lotes (apenas se não estiver editando)
             codigoBarrasSelect.addEventListener('change', function() {
                 if (this.value !== '') {
                     codigoBarrasInput.value = this.value;
+                    if (!isEditMode) {
+                        buscarLotesExistentes(this.value);
+                    }
                     codigoBarrasInput.focus();
+                } else {
+                    if (lotesExistentesContainer) {
+                        lotesExistentesContainer.classList.add('hidden');
+                    }
                 }
             });
             
-            // Quando digitar no input, limpar o select se o valor for diferente
-            codigoBarrasInput.addEventListener('input', function() {
-                if (codigoBarrasSelect.value !== '' && codigoBarrasSelect.value !== this.value.trim()) {
-                    codigoBarrasSelect.value = '';
-                }
-            });
+            // Quando digitar no input, buscar lotes após um delay (apenas se não estiver editando)
+            if (!isEditMode) {
+                codigoBarrasInput.addEventListener('input', function() {
+                    if (codigoBarrasSelect.value !== '' && codigoBarrasSelect.value !== this.value.trim()) {
+                        codigoBarrasSelect.value = '';
+                    }
+                    
+                    // Limpar timeout anterior
+                    if (timeoutBuscarLotes) {
+                        clearTimeout(timeoutBuscarLotes);
+                    }
+                    
+                    // Buscar lotes após 500ms de inatividade
+                    const codigo = this.value.trim();
+                    timeoutBuscarLotes = setTimeout(() => {
+                        if (codigo.length >= 3) {
+                            buscarLotesExistentes(codigo);
+                        } else {
+                            if (lotesExistentesContainer) {
+                                lotesExistentesContainer.classList.add('hidden');
+                            }
+                        }
+                    }, 500);
+                });
+            }
+            
+            // Botão para criar novo lote
+            if (btnNovoLote) {
+                btnNovoLote.addEventListener('click', criarNovoLote);
+            }
             
             // Focar no input quando o modal abrir
             const modal = document.getElementById('addLoteModal') || document.getElementById('editLoteModal');
@@ -835,6 +1119,10 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                             if (!modal.classList.contains('hidden') && codigoBarrasInput) {
                                 setTimeout(() => {
                                     codigoBarrasInput.focus();
+                                    // Limpar seleção ao abrir modal (apenas se não estiver editando)
+                                    if (!isEditMode) {
+                                        criarNovoLote();
+                                    }
                                 }, 100);
                             }
                         }
@@ -850,17 +1138,20 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                 }
             }
             
-            // Focar quando clicar no botão de adicionar lote
-            const addLoteButtons = document.querySelectorAll('[onclick*="addLoteModal"]');
-            addLoteButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    setTimeout(() => {
-                        if (codigoBarrasInput) {
-                            codigoBarrasInput.focus();
-                        }
-                    }, 200);
+            // Focar quando clicar no botão de adicionar lote (apenas se não estiver editando)
+            if (!isEditMode) {
+                const addLoteButtons = document.querySelectorAll('[onclick*="addLoteModal"]');
+                addLoteButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        setTimeout(() => {
+                            if (codigoBarrasInput) {
+                                codigoBarrasInput.focus();
+                                criarNovoLote();
+                            }
+                        }, 200);
+                    });
                 });
-            });
+            }
         }
         
         // Ao submeter o formulário, garantir que o valor correto seja enviado
