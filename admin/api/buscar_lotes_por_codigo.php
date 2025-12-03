@@ -28,7 +28,7 @@ try {
     
     $codigo_barras_id = (int)$codigo_barras_row['id'];
     
-    // Buscar todos os lotes deste código de barras e medicamento
+    // Buscar apenas lotes válidos (não vencidos e com estoque) deste código de barras e medicamento
     $stmt = $conn->prepare("
         SELECT 
             l.id,
@@ -37,14 +37,14 @@ try {
             DATE_FORMAT(l.data_recebimento, '%d/%m/%Y') as data_recebimento_formatada,
             l.data_validade,
             DATE_FORMAT(l.data_validade, '%d/%m/%Y') as data_validade_formatada,
-            l.quantidade_atual,
-            l.fornecedor,
-            l.nota_fiscal,
-            l.observacoes,
+                    l.quantidade_atual,
+                    l.observacoes,
             DATEDIFF(l.data_validade, CURDATE()) as dias_para_vencer
         FROM lotes l
         WHERE l.medicamento_id = ?
           AND l.codigo_barras_id = ?
+          AND l.data_validade >= CURDATE()
+          AND l.quantidade_atual > 0
         ORDER BY l.data_validade ASC, l.numero_lote ASC
     ");
     

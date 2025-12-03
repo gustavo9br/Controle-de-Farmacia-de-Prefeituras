@@ -13,15 +13,13 @@ if (empty($query)) {
 }
 
 try {
-    // Buscar lotes por número do lote, código de barras, nome do medicamento ou fornecedor
+    // Buscar lotes por número do lote, código de barras ou nome do medicamento
     $sql = "SELECT 
                 l.id,
                 l.numero_lote,
                 l.data_recebimento,
                 l.data_validade,
                 l.quantidade_atual,
-                l.fornecedor,
-                l.nota_fiscal,
                 m.id as medicamento_id,
                 m.nome as medicamento_nome,
                 cb.codigo as codigo_barras,
@@ -33,7 +31,6 @@ try {
                 l.numero_lote LIKE :query_like
                 OR cb.codigo LIKE :query_like
                 OR m.nome LIKE :query_like
-                OR l.fornecedor LIKE :query_like
             )
             ORDER BY 
                 CASE 

@@ -296,7 +296,6 @@ $pageTitle = 'Detalhes do Medicamento';
                                     <th class="px-4 sm:px-6 py-3">Recebimento</th>
                                     <th class="px-4 sm:px-6 py-3">Validade</th>
                                     <th class="px-4 sm:px-6 py-3">Qtd. Atual</th>
-                                    <th class="px-4 sm:px-6 py-3">Fornecedor</th>
                                     <th class="px-4 sm:px-6 py-3 text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -326,9 +325,6 @@ $pageTitle = 'Detalhes do Medicamento';
                                             <span class="font-semibold <?php echo $lote['quantidade_atual'] <= 0 ? 'text-rose-600' : 'text-emerald-600'; ?>">
                                                 <?php echo $lote['quantidade_atual']; ?>
                                             </span>
-                                        </td>
-                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
-                                            <?php echo htmlspecialchars($lote['fornecedor'] ?? 'N/A'); ?>
                                         </td>
                                         <td class="px-4 sm:px-6 py-3 sm:py-4">
                                             <div class="flex items-center justify-end gap-2">
@@ -381,13 +377,6 @@ $pageTitle = 'Detalhes do Medicamento';
                                         </p>
                                     </div>
                                 </div>
-                                
-                                <?php if (!empty($lote['fornecedor'])): ?>
-                                    <div class="pt-2 border-t border-slate-100">
-                                        <p class="text-xs text-slate-500 mb-1">Fornecedor</p>
-                                        <p class="text-sm text-slate-700"><?php echo htmlspecialchars($lote['fornecedor']); ?></p>
-                                    </div>
-                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>

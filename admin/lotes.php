@@ -81,10 +81,8 @@ $whereClauses = [];
 $params = [];
 
 if (!empty($search)) {
-    $whereClauses[] = "(l.numero_lote LIKE ? OR m.nome LIKE ? OR l.fornecedor LIKE ? OR l.nota_fiscal LIKE ?)";
+    $whereClauses[] = "(l.numero_lote LIKE ? OR m.nome LIKE ?)";
     $searchParam = '%' . $search . '%';
-    $params[] = $searchParam;
-    $params[] = $searchParam;
     $params[] = $searchParam;
     $params[] = $searchParam;
 }
@@ -295,10 +293,10 @@ $pageTitle = 'Gerenciamento de lotes';
                         <span class="whitespace-nowrap"><?php echo number_format($totalRecords, 0, ',', '.'); ?> lotes</span>
                     </span>
                     <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                        <button onclick="document.getElementById('addLoteModal').classList.remove('hidden'); document.getElementById('codigo_barras_scanner').focus();" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition text-sm sm:text-base">
+                        <a href="lotes_adicionar.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-primary-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition text-sm sm:text-base">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
                             <span>Adicionar Lote</span>
-                        </button>
+                        </a>
                         <a href="lotes_zerados.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 sm:px-6 py-2.5 sm:py-3 text-gray-600 font-semibold shadow hover:shadow-lg transition border border-gray-200 text-sm sm:text-base">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5m16 0h-2.586a1 1 0 0 0-.707.293l-2.414 2.414a1 1 0 0 1-.707.293h-3.172a1 1 0 0 1-.707-.293l-2.414-2.414A1 1 0 0 0 6.586 13H4"/></svg>
                             <span>Lotes Zerados</span>
@@ -328,9 +326,9 @@ $pageTitle = 'Gerenciamento de lotes';
             <section class="glass-card p-4 sm:p-6 space-y-4 sm:space-y-6">
                 <div class="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-12">
                     <div class="lg:col-span-6">
-                        <label for="search" class="text-xs sm:text-sm font-medium text-slate-600">Buscar por lote, código de barras, medicamento ou fornecedor</label>
+                        <label for="search" class="text-xs sm:text-sm font-medium text-slate-600">Buscar por lote, código de barras ou medicamento</label>
                         <div class="relative mt-2">
-                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-4 sm:px-5 py-2.5 sm:py-3 pl-10 sm:pl-11 text-base text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite o número do lote, código de barras, nome do medicamento ou fornecedor..." autocomplete="off">
+                            <input type="text" id="search" class="w-full rounded-2xl border border-slate-100 bg-white px-4 sm:px-5 py-2.5 sm:py-3 pl-10 sm:pl-11 text-base text-slate-700 shadow focus:border-primary-500 focus:ring-primary-500" placeholder="Digite o número do lote, código de barras ou nome do medicamento..." autocomplete="off">
                             <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 7.5 15a7.5 7.5 0 0 0 9.15 1.65z"/></svg>
                             <div id="searchLoader" class="hidden absolute right-3 sm:right-4 top-1/2 -translate-y-1/2">
                                 <div class="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-primary-500"></div>
@@ -366,13 +364,10 @@ $pageTitle = 'Gerenciamento de lotes';
                                         $dias_para_vencer = isset($lote['dias_para_vencer']) ? (int)$lote['dias_para_vencer'] : null;
                                         $quantidade_atual = (int)($lote['quantidade_atual'] ?? 0);
                                     ?>
-                                    <tr class="text-sm text-slate-600">
+                                    <tr class="text-sm text-slate-600 cursor-pointer hover:bg-slate-50 transition" onclick="window.location.href='medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>'">
                                         <td class="px-6 py-4">
                                             <div class="flex flex-col">
                                                 <span class="font-semibold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></span>
-                                                <?php if (!empty($lote['nota_fiscal'])): ?>
-                                                    <span class="text-xs text-slate-400 mt-1">NF: <?php echo htmlspecialchars($lote['nota_fiscal']); ?></span>
-                                                <?php endif; ?>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4">
@@ -409,17 +404,22 @@ $pageTitle = 'Gerenciamento de lotes';
                                                 <?php echo $quantidade_atual; ?> unidades
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-6 py-4" onclick="event.stopPropagation();">
                                             <div class="flex items-center justify-end gap-2">
-                                                <a href="medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>" class="action-chip" title="Ver lotes do medicamento">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12s3.75-6.75 9.75-6.75 9.75 6.75 9.75 6.75-3.75 6.75-9.75 6.75S2.25 12 2.25 12z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15.375a3.375 3.375 0 1 0 0-6.75 3.375 3.375 0 0 0 0 6.75z"/></svg>
+                                                <a href="medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>" class="action-chip" title="Ver lotes do medicamento" onclick="event.stopPropagation();">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
                                                 </a>
-                                                <form method="post" class="inline" onsubmit="return confirm('Confirma a exclusão do lote <?php echo htmlspecialchars($lote['numero_lote'], ENT_QUOTES); ?>? Esta ação não poderá ser desfeita.');">
+                                                <form method="post" class="inline" onsubmit="return confirm('Confirma a exclusão do lote <?php echo htmlspecialchars($lote['numero_lote'], ENT_QUOTES); ?>? Esta ação não poderá ser desfeita.');" onclick="event.stopPropagation();">
                                                     <input type="hidden" name="delete_lote" value="1">
                                                     <input type="hidden" name="lote_id" value="<?php echo (int)$lote['id']; ?>">
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                     <button type="submit" class="action-chip danger" title="Excluir lote">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                        </svg>
                                                     </button>
                                                 </form>
                                             </div>
@@ -437,14 +437,11 @@ $pageTitle = 'Gerenciamento de lotes';
                                 $dias_para_vencer = isset($lote['dias_para_vencer']) ? (int)$lote['dias_para_vencer'] : null;
                                 $quantidade_atual = (int)($lote['quantidade_atual'] ?? 0);
                             ?>
-                            <div class="bg-white/80 rounded-lg border border-slate-200 p-4 sm:p-5 space-y-3 shadow-sm hover:shadow-md transition-all">
+                            <div class="bg-white/80 rounded-lg border border-slate-200 p-4 sm:p-5 space-y-3 shadow-sm hover:shadow-md transition-all cursor-pointer" onclick="window.location.href='medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>'">
                                 <div class="flex items-start justify-between">
                                     <div class="flex-1">
                                         <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Lote</p>
                                         <p class="text-lg font-bold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></p>
-                                        <?php if (!empty($lote['nota_fiscal'])): ?>
-                                            <p class="text-xs text-slate-400 mt-1">NF: <?php echo htmlspecialchars($lote['nota_fiscal']); ?></p>
-                                        <?php endif; ?>
                                     </div>
                                     <span class="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold <?php echo stockBadgeClass($quantidade_atual); ?> whitespace-nowrap ml-3">
                                         <?php echo $quantidade_atual; ?> un
@@ -484,17 +481,22 @@ $pageTitle = 'Gerenciamento de lotes';
                                     </div>
                                 <?php endif; ?>
 
-                                <div class="flex gap-2 pt-3 border-t border-slate-200">
-                                    <a href="medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md" title="Ver lotes">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12s3.75-6.75 9.75-6.75 9.75 6.75 9.75 6.75-3.75 6.75-9.75 6.75S2.25 12 2.25 12z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15.375a3.375 3.375 0 1 0 0-6.75 3.375 3.375 0 0 0 0 6.75z"/></svg>
+                                <div class="flex gap-2 pt-3 border-t border-slate-200" onclick="event.stopPropagation();">
+                                    <a href="medicamentos_lotes.php?med_id=<?php echo (int)$lote['medicamento_id']; ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md" title="Ver lotes" onclick="event.stopPropagation();">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
                                         <span>Ver</span>
                                     </a>
-                                    <form method="post" class="flex-1" onsubmit="return confirm('Confirma a exclusão do lote <?php echo htmlspecialchars($lote['numero_lote'], ENT_QUOTES); ?>?');">
+                                    <form method="post" class="flex-1" onsubmit="return confirm('Confirma a exclusão do lote <?php echo htmlspecialchars($lote['numero_lote'], ENT_QUOTES); ?>?');" onclick="event.stopPropagation();">
                                         <input type="hidden" name="delete_lote" value="1">
                                         <input type="hidden" name="lote_id" value="<?php echo (int)$lote['id']; ?>">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                         <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md" title="Excluir lote">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
                                             <span>Excluir</span>
                                         </button>
                                     </form>
@@ -552,6 +554,7 @@ $pageTitle = 'Gerenciamento de lotes';
     <script>
         let searchTimeout = null;
         let lotesData = <?php echo json_encode($lotes); ?>;
+        const csrfToken = '<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>';
         
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('search');
@@ -572,11 +575,17 @@ $pageTitle = 'Gerenciamento de lotes';
             const container = document.getElementById('lotesContainer');
             const totalInfo = document.getElementById('totalInfo');
             
+            // Se o campo estiver vazio, recarregar a página para mostrar todos os lotes
+            if (!query) {
+                window.location.reload();
+                return;
+            }
+            
             if (loader) loader.classList.remove('hidden');
             
             try {
                 const params = new URLSearchParams();
-                if (query) params.append('q', query);
+                params.append('q', query);
                 
                 const response = await fetch(`api/buscar_lote.php?${params.toString()}`);
                 const data = await response.json();
@@ -643,12 +652,13 @@ $pageTitle = 'Gerenciamento de lotes';
                                 const dias_para_vencer = lote.dias_para_vencer !== null ? parseInt(lote.dias_para_vencer) : null;
                                 const quantidade_atual = parseInt(lote.quantidade_atual || 0);
                                 
+                                const numeroLoteEscaped = lote.numero_lote.replace(/'/g, "\\'");
+                                
                                 return `
-                                    <tr class="text-sm text-slate-600">
+                                    <tr class="text-sm text-slate-600 cursor-pointer hover:bg-slate-50 transition" onclick="window.location.href='medicamentos_lotes.php?med_id=${lote.medicamento_id}'">
                                         <td class="px-6 py-4">
                                             <div class="flex flex-col">
                                                 <span class="font-semibold text-slate-900">${lote.numero_lote}</span>
-                                                ${lote.nota_fiscal ? `<span class="text-xs text-slate-400 mt-1">NF: ${lote.nota_fiscal}</span>` : ''}
                                             </div>
                                         </td>
                                         <td class="px-6 py-4">
@@ -675,11 +685,24 @@ $pageTitle = 'Gerenciamento de lotes';
                                                 ${quantidade_atual} unidades
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-6 py-4" onclick="event.stopPropagation();">
                                             <div class="flex items-center justify-end gap-2">
-                                                <a href="medicamentos_lotes.php?med_id=${lote.medicamento_id}" class="action-chip" title="Ver lotes do medicamento">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12s3.75-6.75 9.75-6.75 9.75 6.75 9.75 6.75-3.75 6.75-9.75 6.75S2.25 12 2.25 12z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15.375a3.375 3.375 0 1 0 0-6.75 3.375 3.375 0 0 0 0 6.75z"/></svg>
+                                                <a href="medicamentos_lotes.php?med_id=${lote.medicamento_id}" class="action-chip" title="Ver lotes do medicamento" onclick="event.stopPropagation();">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
                                                 </a>
+                                                <form method="post" class="inline" onsubmit="return confirm('Confirma a exclusão do lote ${numeroLoteEscaped}? Esta ação não poderá ser desfeita.');" onclick="event.stopPropagation();">
+                                                    <input type="hidden" name="delete_lote" value="1">
+                                                    <input type="hidden" name="lote_id" value="${lote.id}">
+                                                    <input type="hidden" name="csrf_token" value="${csrfToken}">
+                                                    <button type="submit" class="action-chip danger" title="Excluir lote">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                        </svg>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
@@ -688,222 +711,74 @@ $pageTitle = 'Gerenciamento de lotes';
                         </tbody>
                     </table>
                 </div>
-            `;
-        }
-    </script>
+                <div class="lg:hidden space-y-4">
+                    ${lotes.map(lote => {
+                        const dias_para_vencer = lote.dias_para_vencer !== null ? parseInt(lote.dias_para_vencer) : null;
+                        const quantidade_atual = parseInt(lote.quantidade_atual || 0);
+                        const numeroLoteEscaped = lote.numero_lote.replace(/'/g, "\\'");
+                        
+                        return `
+                            <div class="bg-white/80 rounded-lg border border-slate-200 p-4 sm:p-5 space-y-3 shadow-sm hover:shadow-md transition-all cursor-pointer" onclick="window.location.href='medicamentos_lotes.php?med_id=${lote.medicamento_id}'">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Lote</p>
+                                        <p class="text-lg font-bold text-slate-900">${lote.numero_lote}</p>
+                                    </div>
+                                    <span class="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold ${stockBadgeClass(quantidade_atual)} whitespace-nowrap ml-3">
+                                        ${quantidade_atual} un
+                                    </span>
+                                </div>
+                                
+                                <div class="pt-2 border-t border-slate-100">
+                                    <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Medicamento</p>
+                                    <p class="font-semibold text-slate-900 text-sm">${lote.medicamento_nome}</p>
+                                    ${lote.codigo_barras ? `<p class="text-xs text-slate-500 mt-1 font-mono">Código: ${lote.codigo_barras}</p>` : ''}
+                                </div>
 
-    <!-- Modal adicionar lote por código de barras -->
-    <div id="addLoteModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="glass-card w-full max-w-2xl my-8">
-            <div class="flex items-center justify-between px-8 py-6 border-b border-white/60">
-                <h3 class="text-2xl font-bold text-slate-900">Adicionar novo lote</h3>
-                <button onclick="document.getElementById('addLoteModal').classList.add('hidden'); limparFormLote();" type="button" class="rounded-full p-2 hover:bg-slate-100 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-8 space-y-6">
-                <!-- Passo 1: Escanear código de barras -->
-                <div id="passo1" class="space-y-4">
-                    <div>
-                        <label for="codigo_barras_scanner" class="block text-sm font-medium text-slate-700 mb-2">Escaneie ou digite o código de barras do medicamento <span class="text-rose-500">*</span></label>
-                        <div class="relative">
-                            <input type="text" id="codigo_barras_scanner" placeholder="Escaneie ou digite o código de barras" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500" autofocus>
-                            <div id="scannerLoader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
-                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">Recebimento</p>
+                                        <p class="text-sm font-medium text-slate-700">${formatarData(lote.data_recebimento)}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">Validade</p>
+                                        <p class="text-sm font-medium text-slate-700">${formatarData(lote.data_validade)}</p>
+                                    </div>
+                                </div>
+
+                                ${dias_para_vencer !== null ? `
+                                    <div class="pt-2">
+                                        <span class="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold ${validityBadgeClass(dias_para_vencer)}">
+                                            ${dias_para_vencer < 0 ? 'Vencido há ' + Math.abs(dias_para_vencer) + ' dias' : 'Vence em ' + dias_para_vencer + ' dias'}
+                                        </span>
+                                    </div>
+                                ` : ''}
+
+                                <div class="flex gap-2 pt-3 border-t border-slate-200" onclick="event.stopPropagation();">
+                                    <a href="medicamentos_lotes.php?med_id=${lote.medicamento_id}" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md" title="Ver lotes" onclick="event.stopPropagation();">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        <span>Ver</span>
+                                    </a>
+                                    <form method="post" class="flex-1" onsubmit="return confirm('Confirma a exclusão do lote ${numeroLoteEscaped}?');" onclick="event.stopPropagation();">
+                                        <input type="hidden" name="delete_lote" value="1">
+                                        <input type="hidden" name="lote_id" value="${lote.id}">
+                                        <input type="hidden" name="csrf_token" value="${csrfToken}">
+                                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-all shadow-sm hover:shadow-md" title="Excluir lote">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                            <span>Excluir</span>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
-                        <span class="text-xs text-slate-400 mt-1 block">O sistema buscará o medicamento automaticamente.</span>
-                    </div>
-                    <div id="medicamentoInfo" class="hidden p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-sm font-semibold text-emerald-900" id="medicamentoNome"></p>
-                                <p class="text-xs text-emerald-700 mt-1" id="medicamentoDescricao"></p>
-                                <p class="text-xs text-emerald-600 mt-2">Estoque atual: <span id="medicamentoEstoque" class="font-semibold"></span> unidades</p>
-                            </div>
-                            <button onclick="limparFormLote()" class="text-emerald-600 hover:text-emerald-800">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="erroMedicamento" class="hidden p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm">
-                        <p id="erroMedicamentoTexto"></p>
-                    </div>
+                        `;
+                    }).join('')}
                 </div>
-
-                <!-- Passo 2: Formulário de lote -->
-                <form id="formLote" method="post" class="hidden space-y-6" action="medicamentos_lotes.php">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="action" value="add_lote">
-                    <input type="hidden" name="med_id" id="med_id_hidden">
-                    <input type="hidden" name="codigo_barras" id="codigo_barras_hidden">
-                    <input type="hidden" name="from_lotes" value="1">
-
-                    <div>
-                        <label for="codigo_barras_display" class="block text-sm font-medium text-slate-700 mb-2">Código de Barras</label>
-                        <input type="text" id="codigo_barras_display" readonly class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-slate-700">
-                    </div>
-
-                    <div class="grid gap-6 md:grid-cols-2">
-                        <div>
-                            <label for="numero_lote" class="block text-sm font-medium text-slate-700 mb-2">Número do Lote <span class="text-rose-500">*</span></label>
-                            <input type="text" name="numero_lote" id="numero_lote" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label for="data_validade" class="block text-sm font-medium text-slate-700 mb-2">Data de Validade <span class="text-rose-500">*</span></label>
-                            <input type="date" name="data_validade" id="data_validade" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                    </div>
-
-                    <div class="grid gap-6 md:grid-cols-3">
-                        <div>
-                            <label for="data_recebimento" class="block text-sm font-medium text-slate-700 mb-2">Data de Recebimento <span class="text-rose-500">*</span></label>
-                            <input type="date" name="data_recebimento" id="data_recebimento" value="<?php echo date('Y-m-d'); ?>" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label for="quantidade_total" class="block text-sm font-medium text-slate-700 mb-2">Quantidade (unidades) <span class="text-rose-500">*</span></label>
-                            <input type="number" name="quantidade_total" id="quantidade_total" min="1" value="1" required class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                            <span class="text-xs text-slate-400 mt-1 block">Quantidade sempre em unidades.</span>
-                        </div>
-                        <div>
-                            <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
-                            <input type="text" name="fornecedor" id="fornecedor" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                    </div>
-
-                    <div class="grid gap-6 md:grid-cols-2">
-                        <div>
-                            <label for="nota_fiscal" class="block text-sm font-medium text-slate-700 mb-2">Nota Fiscal</label>
-                            <input type="text" name="nota_fiscal" id="nota_fiscal" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label for="observacoes" class="block text-sm font-medium text-slate-700 mb-2">Observações</label>
-                            <textarea name="observacoes" id="observacoes" rows="1" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-3 pt-4">
-                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-8 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>
-                            Adicionar lote
-                        </button>
-                        <button type="button" onclick="document.getElementById('addLoteModal').classList.add('hidden'); limparFormLote();" class="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 text-slate-500 font-semibold shadow hover:shadow-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6M6 6l12 12"/></svg>
-                            Cancelar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let scannerTimeout = null;
-        let medicamentoSelecionado = null;
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const codigoBarrasScanner = document.getElementById('codigo_barras_scanner');
-            const addLoteModal = document.getElementById('addLoteModal');
-            
-            if (codigoBarrasScanner) {
-                codigoBarrasScanner.addEventListener('input', function(e) {
-                    const codigo = this.value.trim();
-                    
-                    clearTimeout(scannerTimeout);
-                    
-                    if (codigo.length >= 8) { // Códigos de barras geralmente têm pelo menos 8 dígitos
-                        scannerTimeout = setTimeout(() => {
-                            buscarMedicamentoPorCodigo(codigo);
-                        }, 500);
-                    } else {
-                        esconderMedicamentoInfo();
-                        esconderErro();
-                    }
-                });
-            }
-            
-            // Focar no input quando o modal abrir
-            if (addLoteModal && codigoBarrasScanner) {
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                            if (!addLoteModal.classList.contains('hidden')) {
-                                setTimeout(() => {
-                                    codigoBarrasScanner.focus();
-                                }, 100);
-                            }
-                        }
-                    });
-                });
-                observer.observe(addLoteModal, { attributes: true });
-            }
-        });
-
-        async function buscarMedicamentoPorCodigo(codigo) {
-            const loader = document.getElementById('scannerLoader');
-            const medicamentoInfo = document.getElementById('medicamentoInfo');
-            const erroMedicamento = document.getElementById('erroMedicamento');
-            const formLote = document.getElementById('formLote');
-            const passo1 = document.getElementById('passo1');
-            
-            if (loader) loader.classList.remove('hidden');
-            esconderMedicamentoInfo();
-            esconderErro();
-            
-            try {
-                const response = await fetch(`api/buscar_medicamento_por_codigo.php?codigo=${encodeURIComponent(codigo)}`);
-                const data = await response.json();
-                
-                if (loader) loader.classList.add('hidden');
-                
-                if (data.success && data.medicamento) {
-                    medicamentoSelecionado = data.medicamento;
-                    mostrarMedicamentoInfo(data.medicamento);
-                    mostrarFormLote(codigo, data.medicamento.id);
-                } else {
-                    mostrarErro(data.message || 'Nenhum medicamento encontrado com este código de barras. Verifique se o código está correto.');
-                }
-            } catch (error) {
-                console.error('Erro ao buscar medicamento:', error);
-                if (loader) loader.classList.add('hidden');
-                mostrarErro('Erro ao buscar medicamento. Tente novamente.');
-            }
-        }
-
-        function mostrarMedicamentoInfo(medicamento) {
-            document.getElementById('medicamentoNome').textContent = medicamento.nome;
-            document.getElementById('medicamentoDescricao').textContent = medicamento.descricao || '';
-            document.getElementById('medicamentoEstoque').textContent = medicamento.estoque_atual || 0;
-            document.getElementById('medicamentoInfo').classList.remove('hidden');
-        }
-
-        function esconderMedicamentoInfo() {
-            document.getElementById('medicamentoInfo').classList.add('hidden');
-        }
-
-        function mostrarErro(mensagem) {
-            document.getElementById('erroMedicamentoTexto').textContent = mensagem;
-            document.getElementById('erroMedicamento').classList.remove('hidden');
-        }
-
-        function esconderErro() {
-            document.getElementById('erroMedicamento').classList.add('hidden');
-        }
-
-        function mostrarFormLote(codigoBarras, medicamentoId) {
-            document.getElementById('codigo_barras_display').value = codigoBarras;
-            document.getElementById('codigo_barras_hidden').value = codigoBarras;
-            document.getElementById('med_id_hidden').value = medicamentoId;
-            document.getElementById('formLote').classList.remove('hidden');
-        }
-
-        function limparFormLote() {
-            document.getElementById('codigo_barras_scanner').value = '';
-            document.getElementById('medicamentoInfo').classList.add('hidden');
-            document.getElementById('erroMedicamento').classList.add('hidden');
-            document.getElementById('formLote').classList.add('hidden');
-            document.getElementById('formLote').reset();
-            medicamentoSelecionado = null;
+            `;
         }
     </script>
 </body>

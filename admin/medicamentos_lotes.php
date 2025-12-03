@@ -35,8 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $data_recebimento = trim($_POST['data_recebimento'] ?? '');
                     $data_validade = trim($_POST['data_validade'] ?? '');
                     $quantidade_total = (int)($_POST['quantidade_total'] ?? 0);
-                    $fornecedor = trim($_POST['fornecedor'] ?? '');
-                    $nota_fiscal = trim($_POST['nota_fiscal'] ?? '');
                     $observacoes = trim($_POST['observacoes'] ?? '');
                     $usar_lote_existente = isset($_POST['usar_lote_existente']) && $_POST['usar_lote_existente'] === '1';
                     $lote_existente_id = isset($_POST['lote_existente_id']) ? (int)$_POST['lote_existente_id'] : 0;
@@ -126,8 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     data_recebimento = ?, 
                                     data_validade = ?, 
                                     quantidade_atual = ?,
-                                    fornecedor = ?,
-                                    nota_fiscal = ?,
                                     observacoes = ?,
                                     atualizado_em = NOW()
                                     WHERE id = ?";
@@ -135,20 +131,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $stmt = $conn->prepare($sql);
                             $stmt->execute([
                                 $data_recebimento, $data_validade, $nova_quantidade_atual,
-                                $fornecedor, $nota_fiscal, $observacoes, $lote_id
+                                $observacoes, $lote_id
                             ]);
                             
                             $mensagem_sucesso = "Lote reutilizado e atualizado com sucesso! A quantidade foi adicionada ao lote existente.";
                         } else {
                             // 4. Inserir novo lote (ligado ao código de barras)
                             $sql = "INSERT INTO lotes (codigo_barras_id, medicamento_id, numero_lote, data_recebimento, data_validade, 
-                                    quantidade_atual, fornecedor, nota_fiscal, observacoes, criado_em) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                                    quantidade_atual, observacoes, criado_em) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
                             
                             $stmt = $conn->prepare($sql);
                             $stmt->execute([
                                 $codigo_barras_id, $med_id, $numero_lote, $data_recebimento, $data_validade,
-                                $quantidade_total, $fornecedor, $nota_fiscal, $observacoes
+                                $quantidade_total, $observacoes
                             ]);
                             
                             $mensagem_sucesso = "Lote adicionado com sucesso!";
@@ -186,8 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $data_recebimento = trim($_POST['data_recebimento'] ?? '');
                     $data_validade = trim($_POST['data_validade'] ?? '');
                     $quantidade_atual = (int)($_POST['quantidade_atual'] ?? 0);
-                    $fornecedor = trim($_POST['fornecedor'] ?? '');
-                    $nota_fiscal = trim($_POST['nota_fiscal'] ?? '');
                     $observacoes = trim($_POST['observacoes'] ?? '');
                     
                     if (empty($codigo_barras)) {
@@ -239,14 +233,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // 3. Atualizar lote
                     $sql = "UPDATE lotes SET 
                             codigo_barras_id = ?, numero_lote = ?, data_recebimento = ?, data_validade = ?, 
-                            quantidade_atual = ?, fornecedor = ?, nota_fiscal = ?, observacoes = ?, 
+                            quantidade_atual = ?, observacoes = ?, 
                             atualizado_em = NOW() 
                             WHERE id = ? AND medicamento_id = ?";
                     
                     $stmt = $conn->prepare($sql);
                     $stmt->execute([
                         $codigo_barras_id, $numero_lote, $data_recebimento, $data_validade,
-                        $quantidade_atual, $fornecedor, $nota_fiscal, $observacoes,
+                        $quantidade_atual, $observacoes,
                         $lote_id, $med_id
                     ]);
                     
@@ -537,10 +531,10 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                         <?php endif; ?>
                     </div>
                     <div class="flex flex-wrap gap-3">
-                        <button onclick="document.getElementById('addLoteModal').classList.remove('hidden')" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
+                        <a href="lotes_adicionar.php?med_id=<?php echo $med_id; ?>" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-6 py-3 text-white font-semibold shadow-glow hover:bg-primary-500 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m6-6H6"/></svg>
                             Novo lote
-                        </button>
+                        </a>
                         <a href="medicamentos_view.php?id=<?php echo $med_id; ?>" class="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sky-600 font-semibold shadow hover:shadow-lg transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12s3.75-6.75 9.75-6.75 9.75 6.75 9.75 6.75-3.75 6.75-9.75 6.75S2.25 12 2.25 12z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15.375a3.375 3.375 0 1 0 0-6.75 3.375 3.375 0 0 0 0 6.75z"/></svg>
                             Ver detalhes
@@ -583,7 +577,6 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                     <th class="px-6 py-3">Recebimento</th>
                                     <th class="px-6 py-3">Validade</th>
                                     <th class="px-6 py-3">Qtd. Atual</th>
-                                    <th class="px-6 py-3">Fornecedor</th>
                                     <th class="px-6 py-3 text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -630,19 +623,20 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                             </span>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <span class="text-sm text-slate-600"><?php echo !empty($lote['fornecedor']) ? htmlspecialchars($lote['fornecedor']) : '—'; ?></span>
-                                        </td>
-                                        <td class="px-6 py-4">
                                             <div class="flex items-center justify-end gap-2">
                                                 <a href="medicamentos_lotes.php?med_id=<?php echo $med_id; ?>&edit=<?php echo (int)$lote['id']; ?>" class="action-chip" title="Editar lote">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                    </svg>
                                                 </a>
                                                 <form method="post" class="inline" onsubmit="return confirm('Confirma a exclusão do lote <?php echo htmlspecialchars($lote['numero_lote'], ENT_QUOTES); ?>? Esta ação afetará o estoque do medicamento.');">
                                                     <input type="hidden" name="action" value="delete_lote">
                                                     <input type="hidden" name="lote_id" value="<?php echo (int)$lote['id']; ?>">
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                     <button type="submit" class="action-chip danger" title="Excluir lote">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                        </svg>
                                                     </button>
                                                 </form>
                                             </div>
@@ -667,9 +661,6 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                         <p class="font-mono text-xs text-slate-700"><?php echo !empty($lote['codigo_barras']) ? htmlspecialchars($lote['codigo_barras']) : '—'; ?></p>
                                         <p class="text-xs text-slate-500 uppercase tracking-wide mt-2">Lote</p>
                                         <p class="font-semibold text-slate-900"><?php echo htmlspecialchars($lote['numero_lote']); ?></p>
-                                        <?php if (!empty($lote['nota_fiscal'])): ?>
-                                            <p class="text-xs text-slate-400 mt-1">NF: <?php echo htmlspecialchars($lote['nota_fiscal']); ?></p>
-                                        <?php endif; ?>
                                     </div>
                                     <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo stockBadgeClass($quantidade_atual); ?>">
                                         <?php echo $quantidade_atual; ?>
@@ -705,16 +696,12 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                     <?php endif; ?>
                                 </div>
 
-                                <?php if (!empty($lote['fornecedor'])): ?>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Fornecedor</p>
-                                        <p class="text-sm text-slate-700"><?php echo htmlspecialchars($lote['fornecedor']); ?></p>
-                                    </div>
-                                <?php endif; ?>
 
                                 <div class="flex gap-2 pt-2 border-t border-slate-100">
                                     <a href="medicamentos_lotes.php?med_id=<?php echo $med_id; ?>&edit=<?php echo (int)$lote['id']; ?>" class="action-chip flex-1 justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.862 4.487 19.5 7.125m-2.638-2.638L9.75 14.25 7.5 16.5m12-9-5.25-5.25M7.5 16.5v2.25h2.25L18.75 9"/></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
                                         Editar
                                     </a>
                                     <form method="post" class="flex-1" onsubmit="return confirm('Confirma a exclusão do lote?');">
@@ -722,7 +709,9 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                                         <input type="hidden" name="lote_id" value="<?php echo (int)$lote['id']; ?>">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                         <button type="submit" class="action-chip danger w-full justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 7.5h12M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5m-6 0v10.5A1.5 1.5 0 0 0 10.5 21h3A1.5 1.5 0 0 0 15 19.5V7.5"/></svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
                                             Excluir
                                         </button>
                                     </form>
@@ -734,30 +723,27 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                     <div class="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center text-slate-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m3 7.5 9-4.5 9 4.5m-18 0 9 4.5m9-4.5-9 4.5m0 9v-9"/></svg>
                         <p class="text-sm">Nenhum lote cadastrado para este medicamento.</p>
-                        <button onclick="document.getElementById('addLoteModal').classList.remove('hidden')" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2 text-white text-sm font-semibold shadow hover:bg-primary-500 transition">Cadastrar o primeiro lote</button>
+                        <a href="lotes_adicionar.php?med_id=<?php echo $med_id; ?>" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2 text-white text-sm font-semibold shadow hover:bg-primary-500 transition">Cadastrar o primeiro lote</a>
                     </div>
                 <?php endif; ?>
             </section>
         </main>
     </div>
 
-    <!-- Modal adicionar/editar lote -->
-    <div id="<?php echo $lote_edit ? 'editLoteModal' : 'addLoteModal'; ?>" class="<?php echo $lote_edit ? '' : 'hidden'; ?> fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <!-- Modal editar lote -->
+    <?php if ($lote_edit): ?>
+    <div id="editLoteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div class="glass-card w-full max-w-4xl my-8">
             <div class="flex items-center justify-between px-8 py-6 border-b border-white/60">
-                <h3 class="text-2xl font-bold text-slate-900">
-                    <?php echo $lote_edit ? 'Editar lote' : 'Adicionar novo lote'; ?>
-                </h3>
+                <h3 class="text-2xl font-bold text-slate-900">Editar lote</h3>
                 <button onclick="window.location.href='medicamentos_lotes.php?med_id=<?php echo $med_id; ?>'" type="button" class="rounded-full p-2 hover:bg-slate-100 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18 18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             <form method="post" class="p-8 space-y-6">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                <input type="hidden" name="action" value="<?php echo $lote_edit ? 'edit_lote' : 'add_lote'; ?>">
-                <?php if ($lote_edit): ?>
-                    <input type="hidden" name="lote_id" value="<?php echo (int)$lote_edit['id']; ?>">
-                <?php endif; ?>
+                <input type="hidden" name="action" value="edit_lote">
+                <input type="hidden" name="lote_id" value="<?php echo (int)$lote_edit['id']; ?>">
 
                 <div class="space-y-4">
                     <div>
@@ -776,22 +762,7 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                         <span class="text-xs text-slate-400 mt-1 block">Se o código não existir, será criado automaticamente para este medicamento.</span>
                     </div>
                     
-                    <!-- Área para mostrar lotes existentes -->
-                    <div id="lotesExistentesContainer" class="hidden">
-                        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <h4 class="text-sm font-semibold text-sky-900">Lotes existentes para este código de barras</h4>
-                                <button type="button" id="btnNovoLote" class="text-xs text-sky-600 hover:text-sky-700 font-medium hidden">Criar novo lote</button>
-                            </div>
-                            <div id="lotesExistentesLista" class="space-y-2 max-h-60 overflow-y-auto">
-                                <!-- Lotes serão inseridos aqui via JavaScript -->
-                            </div>
-                        </div>
-                    </div>
                 </div>
-                
-                <input type="hidden" name="lote_existente_id" id="lote_existente_id" value="">
-                <input type="hidden" name="usar_lote_existente" id="usar_lote_existente" value="0">
 
                 <div class="grid gap-6 md:grid-cols-2">
                     <div>
@@ -819,23 +790,6 @@ $pageTitle = 'Gerenciar lotes do medicamento';
                             <span class="text-xs text-slate-400 mt-1 block">Quantidade sempre em unidades.</span>
                         <?php endif; ?>
                     </div>
-                    <div>
-                        <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
-                        <input type="text" name="fornecedor" id="fornecedor" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['fornecedor'] ?? '') : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                    </div>
-                </div>
-
-                <div class="grid gap-6 md:grid-cols-2">
-                    <div>
-                        <label for="nota_fiscal" class="block text-sm font-medium text-slate-700 mb-2">Nota Fiscal</label>
-                        <input type="text" name="nota_fiscal" id="nota_fiscal" value="<?php echo $lote_edit ? htmlspecialchars($lote_edit['nota_fiscal']) : ''; ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                    </div>
-                    <?php if ($lote_edit): ?>
-                        <div>
-                            <label for="fornecedor" class="block text-sm font-medium text-slate-700 mb-2">Fornecedor</label>
-                            <input type="text" name="fornecedor" id="fornecedor" value="<?php echo htmlspecialchars($lote_edit['fornecedor'] ?? ''); ?>" class="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 focus:border-primary-500 focus:ring-primary-500">
-                        </div>
-                    <?php endif; ?>
                 </div>
 
                 <div>
@@ -856,301 +810,30 @@ $pageTitle = 'Gerenciar lotes do medicamento';
             </form>
         </div>
     </div>
+    <?php endif; ?>
 
     <script src="js/sidebar.js" defer></script>
+    <?php if ($lote_edit): ?>
     <script>
-        const medId = <?php echo $med_id; ?>;
-        const isEditMode = <?php echo $lote_edit ? 'true' : 'false'; ?>;
-        let timeoutBuscarLotes = null;
-        
-        // Permitir digitar novo código de barras ou selecionar existente
+        // Permitir digitar novo código de barras ou selecionar existente (apenas no modo de edição)
         const codigoBarrasSelect = document.getElementById('codigo_barras');
         const codigoBarrasInput = document.getElementById('codigo_barras_input');
-        const lotesExistentesContainer = document.getElementById('lotesExistentesContainer');
-        const lotesExistentesLista = document.getElementById('lotesExistentesLista');
-        const btnNovoLote = document.getElementById('btnNovoLote');
-        const loteExistenteId = document.getElementById('lote_existente_id');
-        const usarLoteExistente = document.getElementById('usar_lote_existente');
-        
-        // Se estiver no modo de edição, esconder a área de lotes existentes
-        if (isEditMode && lotesExistentesContainer) {
-            lotesExistentesContainer.classList.add('hidden');
-        }
-        
-        // Função para buscar lotes existentes
-        function buscarLotesExistentes(codigoBarras) {
-            if (!codigoBarras || codigoBarras.trim() === '') {
-                lotesExistentesContainer.classList.add('hidden');
-                return;
-            }
-            
-            fetch(`api/buscar_lotes_por_codigo.php?medicamento_id=${medId}&codigo_barras=${encodeURIComponent(codigoBarras)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.lotes && data.lotes.length > 0) {
-                        mostrarLotesExistentes(data.lotes);
-                    } else {
-                        lotesExistentesContainer.classList.add('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro ao buscar lotes:', error);
-                    lotesExistentesContainer.classList.add('hidden');
-                });
-        }
-        
-        // Função para mostrar lotes existentes
-        function mostrarLotesExistentes(lotes) {
-            lotesExistentesLista.innerHTML = '';
-            
-            lotes.forEach(lote => {
-                const diasVenc = parseInt(lote.dias_para_vencer) || 0;
-                let badgeClass = 'bg-emerald-100 text-emerald-600';
-                let badgeText = `Vence em ${diasVenc} dias`;
-                
-                if (diasVenc < 0) {
-                    badgeClass = 'bg-rose-100 text-rose-600';
-                    badgeText = `Vencido há ${Math.abs(diasVenc)} dias`;
-                } else if (diasVenc <= 30) {
-                    badgeClass = 'bg-amber-100 text-amber-700';
-                } else if (diasVenc <= 90) {
-                    badgeClass = 'bg-sky-100 text-sky-700';
-                }
-                
-                const loteCard = document.createElement('div');
-                loteCard.className = 'bg-white rounded-xl p-3 border border-sky-200 hover:border-sky-300 cursor-pointer transition';
-                loteCard.innerHTML = `
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="font-semibold text-slate-900">Lote: ${lote.numero_lote}</span>
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass}">
-                                    ${badgeText}
-                                </span>
-                            </div>
-                            <div class="text-xs text-slate-600 space-y-0.5">
-                                <p>Validade: ${lote.data_validade_formatada}</p>
-                                <p>Recebimento: ${lote.data_recebimento_formatada}</p>
-                                <p>Qtd. Atual: <span class="font-semibold">${lote.quantidade_atual}</span></p>
-                                ${lote.fornecedor ? `<p>Fornecedor: ${lote.fornecedor}</p>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                loteCard.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    selecionarLoteExistente(lote, e);
-                });
-                lotesExistentesLista.appendChild(loteCard);
-            });
-            
-            lotesExistentesContainer.classList.remove('hidden');
-            btnNovoLote.classList.remove('hidden');
-        }
-        
-        // Função para selecionar um lote existente
-        function selecionarLoteExistente(lote, event = null) {
-            if (isEditMode) return; // Não fazer nada se estiver editando
-            
-            // Preencher campos com dados do lote (verificando se existem)
-            const numeroLote = document.getElementById('numero_lote');
-            const dataValidade = document.getElementById('data_validade');
-            const dataRecebimento = document.getElementById('data_recebimento');
-            const fornecedor = document.getElementById('fornecedor');
-            const notaFiscal = document.getElementById('nota_fiscal');
-            const observacoes = document.getElementById('observacoes');
-            const quantidadeTotal = document.getElementById('quantidade_total');
-            
-            if (numeroLote) {
-                numeroLote.value = lote.numero_lote;
-                numeroLote.readOnly = true;
-            }
-            if (dataValidade) {
-                dataValidade.value = lote.data_validade;
-                dataValidade.readOnly = true;
-            }
-            if (dataRecebimento) {
-                dataRecebimento.value = lote.data_recebimento;
-                dataRecebimento.readOnly = true;
-            }
-            if (fornecedor) {
-                fornecedor.value = lote.fornecedor || '';
-                fornecedor.readOnly = true;
-            }
-            if (notaFiscal) {
-                notaFiscal.value = lote.nota_fiscal || '';
-                notaFiscal.readOnly = true;
-            }
-            if (observacoes) {
-                observacoes.value = lote.observacoes || '';
-                observacoes.readOnly = true;
-            }
-            
-            // Marcar que está usando lote existente
-            if (loteExistenteId) loteExistenteId.value = lote.id;
-            if (usarLoteExistente) usarLoteExistente.value = '1';
-            
-            // Destacar o lote selecionado
-            if (lotesExistentesLista) {
-                lotesExistentesLista.querySelectorAll('div').forEach(card => {
-                    card.classList.remove('ring-2', 'ring-primary-500', 'border-primary-500');
-                });
-                // Adicionar destaque ao card clicado
-                if (event && event.currentTarget) {
-                    event.currentTarget.classList.add('ring-2', 'ring-primary-500', 'border-primary-500');
-                }
-            }
-            
-            // Focar no campo de quantidade
-            if (quantidadeTotal) quantidadeTotal.focus();
-        }
-        
-        // Função para criar novo lote
-        function criarNovoLote() {
-            if (isEditMode) return; // Não fazer nada se estiver editando
-            
-            // Limpar seleção
-            if (loteExistenteId) loteExistenteId.value = '';
-            if (usarLoteExistente) usarLoteExistente.value = '0';
-            
-            // Limpar campos (verificando se existem)
-            const numeroLote = document.getElementById('numero_lote');
-            const dataValidade = document.getElementById('data_validade');
-            const dataRecebimento = document.getElementById('data_recebimento');
-            const fornecedor = document.getElementById('fornecedor');
-            const notaFiscal = document.getElementById('nota_fiscal');
-            const observacoes = document.getElementById('observacoes');
-            const quantidadeTotal = document.getElementById('quantidade_total');
-            
-            if (numeroLote) {
-                numeroLote.value = '';
-                numeroLote.readOnly = false;
-            }
-            if (dataValidade) {
-                dataValidade.value = '';
-                dataValidade.readOnly = false;
-            }
-            if (dataRecebimento) {
-                dataRecebimento.value = '<?php echo date('Y-m-d'); ?>';
-                dataRecebimento.readOnly = false;
-            }
-            if (fornecedor) {
-                fornecedor.value = '';
-                fornecedor.readOnly = false;
-            }
-            if (notaFiscal) {
-                notaFiscal.value = '';
-                notaFiscal.readOnly = false;
-            }
-            if (observacoes) {
-                observacoes.value = '';
-                observacoes.readOnly = false;
-            }
-            if (quantidadeTotal) {
-                quantidadeTotal.value = '1';
-            }
-            
-            // Remover destaque dos lotes
-            if (lotesExistentesLista) {
-                lotesExistentesLista.querySelectorAll('div').forEach(card => {
-                    card.classList.remove('ring-2', 'ring-primary-500', 'border-primary-500');
-                });
-            }
-            
-            // Focar no número do lote
-            if (numeroLote) numeroLote.focus();
-        }
         
         if (codigoBarrasSelect && codigoBarrasInput) {
-            // Quando selecionar um código existente, preencher o input e buscar lotes (apenas se não estiver editando)
+            // Quando selecionar um código existente, preencher o input
             codigoBarrasSelect.addEventListener('change', function() {
                 if (this.value !== '') {
                     codigoBarrasInput.value = this.value;
-                    if (!isEditMode) {
-                        buscarLotesExistentes(this.value);
-                    }
                     codigoBarrasInput.focus();
-                } else {
-                    if (lotesExistentesContainer) {
-                        lotesExistentesContainer.classList.add('hidden');
-                    }
                 }
             });
             
-            // Quando digitar no input, buscar lotes após um delay (apenas se não estiver editando)
-            if (!isEditMode) {
-                codigoBarrasInput.addEventListener('input', function() {
-                    if (codigoBarrasSelect.value !== '' && codigoBarrasSelect.value !== this.value.trim()) {
-                        codigoBarrasSelect.value = '';
-                    }
-                    
-                    // Limpar timeout anterior
-                    if (timeoutBuscarLotes) {
-                        clearTimeout(timeoutBuscarLotes);
-                    }
-                    
-                    // Buscar lotes após 500ms de inatividade
-                    const codigo = this.value.trim();
-                    timeoutBuscarLotes = setTimeout(() => {
-                        if (codigo.length >= 3) {
-                            buscarLotesExistentes(codigo);
-                        } else {
-                            if (lotesExistentesContainer) {
-                                lotesExistentesContainer.classList.add('hidden');
-                            }
-                        }
-                    }, 500);
-                });
-            }
-            
-            // Botão para criar novo lote
-            if (btnNovoLote) {
-                btnNovoLote.addEventListener('click', criarNovoLote);
-            }
-            
             // Focar no input quando o modal abrir
-            const modal = document.getElementById('addLoteModal') || document.getElementById('editLoteModal');
-            if (modal) {
-                // Observer para detectar quando o modal é exibido
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                            if (!modal.classList.contains('hidden') && codigoBarrasInput) {
-                                setTimeout(() => {
-                                    codigoBarrasInput.focus();
-                                    // Limpar seleção ao abrir modal (apenas se não estiver editando)
-                                    if (!isEditMode) {
-                                        criarNovoLote();
-                                    }
-                                }, 100);
-                            }
-                        }
-                    });
-                });
-                observer.observe(modal, { attributes: true });
-                
-                // Também focar se o modal já estiver visível
-                if (!modal.classList.contains('hidden') && codigoBarrasInput) {
-                    setTimeout(() => {
-                        codigoBarrasInput.focus();
-                    }, 100);
-                }
-            }
-            
-            // Focar quando clicar no botão de adicionar lote (apenas se não estiver editando)
-            if (!isEditMode) {
-                const addLoteButtons = document.querySelectorAll('[onclick*="addLoteModal"]');
-                addLoteButtons.forEach(button => {
-                    button.addEventListener('click', function() {
-                        setTimeout(() => {
-                            if (codigoBarrasInput) {
-                                codigoBarrasInput.focus();
-                                criarNovoLote();
-                            }
-                        }, 200);
-                    });
-                });
+            const modal = document.getElementById('editLoteModal');
+            if (modal && codigoBarrasInput) {
+                setTimeout(() => {
+                    codigoBarrasInput.focus();
+                }, 100);
             }
         }
         
@@ -1165,5 +848,6 @@ $pageTitle = 'Gerenciar lotes do medicamento';
             });
         }
     </script>
+    <?php endif; ?>
 </body>
 </html>
