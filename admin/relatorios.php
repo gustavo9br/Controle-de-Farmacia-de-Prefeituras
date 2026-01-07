@@ -159,13 +159,24 @@ if ($reportType === 'movimentacao') {
                 mv.observacoes,
                 mv.data_movimentacao,
                 mv.criado_em,
+                mv.medicamento_id,
+                mv.lote_id,
                 m.nome AS medicamento_nome,
                 COALESCE(l.numero_lote, "—") AS numero_lote,
-                COALESCE(u.nome, "Sistema") AS usuario_nome
+                COALESCE(u.nome, "Sistema") AS usuario_nome,
+                d.id AS dispensacao_id,
+                COALESCE(p.nome, "—") AS paciente_nome
             FROM movimentacoes mv
             LEFT JOIN medicamentos m ON mv.medicamento_id = m.id
             LEFT JOIN lotes l ON mv.lote_id = l.id
             LEFT JOIN usuarios u ON mv.usuario_id = u.id
+            LEFT JOIN dispensacoes d ON mv.tipo = "dispensacao" 
+                AND d.medicamento_id = mv.medicamento_id 
+                AND d.lote_id = mv.lote_id 
+                AND d.quantidade = mv.quantidade
+                AND DATE(d.data_dispensacao) = DATE(COALESCE(mv.data_movimentacao, mv.criado_em))
+                AND ABS(TIMESTAMPDIFF(MINUTE, d.data_dispensacao, COALESCE(mv.data_movimentacao, mv.criado_em))) <= 5
+            LEFT JOIN pacientes p ON d.paciente_id = p.id
             ORDER BY COALESCE(mv.data_movimentacao, mv.criado_em) DESC
             LIMIT 100'
         );
@@ -629,13 +640,15 @@ function vencimentoBadgeClass($dias)
                                         <th class="px-4 sm:px-6 py-3">Medicamento</th>
                                         <th class="px-4 sm:px-6 py-3">Lote</th>
                                         <th class="px-4 sm:px-6 py-3">Quantidade</th>
+                                        <th class="px-4 sm:px-6 py-3">Paciente</th>
                                         <th class="px-4 sm:px-6 py-3">Usuário</th>
                                         <th class="px-4 sm:px-6 py-3">Observações</th>
+                                        <th class="px-4 sm:px-6 py-3">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 bg-white/80">
                                     <?php foreach ($data as $item): ?>
-                                        <tr class="text-sm text-slate-600">
+                                        <tr class="text-sm text-slate-600" id="movimentacao-row-<?php echo $item['id']; ?>">
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo formatarData($item['data_movimentacao'] ?? $item['criado_em']); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4">
                                                 <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold <?php echo movimentacaoBadgeClass($item['tipo']); ?>">
@@ -650,15 +663,37 @@ function vencimentoBadgeClass($dias)
                                             </td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500 font-mono text-xs uppercase"><?php echo htmlspecialchars($item['numero_lote']); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-slate-900"><?php echo formatNumber($item['quantidade']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500">
+                                                <?php if ($item['tipo'] === 'dispensacao' && !empty($item['paciente_nome']) && $item['paciente_nome'] !== '—'): ?>
+                                                    <span class="font-medium text-slate-700"><?php echo htmlspecialchars($item['paciente_nome']); ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-slate-300">—</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo htmlspecialchars($item['usuario_nome']); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500">
                                                 <?php echo !empty($item['observacoes']) ? htmlspecialchars($item['observacoes']) : '—'; ?>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <?php if ($item['tipo'] === 'dispensacao' && !empty($item['dispensacao_id'])): ?>
+                                                    <button 
+                                                        onclick="deletarDispensacao(<?php echo $item['dispensacao_id']; ?>, <?php echo $item['id']; ?>)"
+                                                        class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Deletar dispensação"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span class="text-slate-300">—</span>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                     <?php if (empty($data)): ?>
                                         <tr>
-                                            <td colspan="7" class="px-6 py-5 text-center text-sm text-slate-400">Nenhuma movimentação registrada até o momento.</td>
+                                            <td colspan="9" class="px-6 py-5 text-center text-sm text-slate-400">Nenhuma movimentação registrada até o momento.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
@@ -672,5 +707,45 @@ function vencimentoBadgeClass($dias)
     </div>
 
     <script src="js/sidebar.js" defer></script>
+    <script>
+        async function deletarDispensacao(dispensacaoId, movimentacaoId) {
+            if (!confirm('Tem certeza que deseja deletar esta dispensação? Esta ação irá reverter o estoque e não pode ser desfeita.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`api/deletar_dispensacao.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dispensacao_id: dispensacaoId,
+                        movimentacao_id: movimentacaoId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Remover a linha da tabela
+                    const row = document.getElementById(`movimentacao-row-${movimentacaoId}`);
+                    if (row) {
+                        row.remove();
+                    }
+                    alert('Dispensação deletada com sucesso!');
+                    // Recarregar a página para atualizar os totais
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    alert('Erro ao deletar dispensação: ' + (data.message || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao deletar dispensação. Tente novamente.');
+            }
+        }
+    </script>
 </body>
 </html>

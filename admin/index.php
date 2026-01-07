@@ -98,7 +98,7 @@ $pageTitle = "Dispensação de Medicamentos";
                     </div>
                     
                     <div id="pacienteSelecionado" class="hidden mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2">
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center text-sm font-bold" id="pacienteAvatar"></div>
                                 <div>
@@ -106,7 +106,30 @@ $pageTitle = "Dispensação de Medicamentos";
                                     <p class="text-xs text-gray-600" id="pacienteInfo"></p>
                                 </div>
                             </div>
-                            <button onclick="removerPaciente()" class="text-red-500 hover:text-red-700 text-lg font-bold">×</button>
+                            <div class="flex items-center gap-2">
+                                <a 
+                                    id="btnHistoricoPaciente" 
+                                    href="#" 
+                                    onclick="event.preventDefault(); abrirHistoricoPaciente();"
+                                    class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Ver histórico completo do paciente"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </a>
+                                <button onclick="removerPaciente()" class="text-red-500 hover:text-red-700 text-lg font-bold">×</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Histórico de Dispensações -->
+                        <div id="historicoDispensacoes" class="mt-3 pt-3 border-t border-emerald-200">
+                            <p class="text-xs font-semibold text-gray-700 mb-2">📋 Últimas 5 dispensações:</p>
+                            <div id="historicoLista" class="space-y-2">
+                                <div class="text-center py-2 text-gray-400 text-xs">
+                                    Carregando...
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -131,7 +131,7 @@ function mostrarResultadosPacientes(pacientes) {
     results.classList.remove('hidden');
 }
 
-function selecionarPaciente(paciente) {
+async function selecionarPaciente(paciente) {
     pacienteSelecionado = paciente;
     
     document.getElementById('pacienteSearch').value = '';
@@ -143,10 +143,25 @@ function selecionarPaciente(paciente) {
     document.getElementById('pacienteInfo').textContent = `${paciente.cpf || 'CPF não informado'}`;
     selecionado.classList.remove('hidden');
     
+    // Atualizar link do histórico
+    const btnHistorico = document.getElementById('btnHistoricoPaciente');
+    if (btnHistorico && paciente.id) {
+        btnHistorico.href = `paciente_historico.php?id=${paciente.id}`;
+    }
+    
     document.getElementById('stepMedicamentos').classList.remove('hidden');
     document.getElementById('medicamentoSearch').focus();
     
+    // Carregar histórico de dispensações
+    await carregarHistoricoDispensacoes(paciente.id);
+    
     console.log('✅ Paciente selecionado:', paciente);
+}
+
+function abrirHistoricoPaciente() {
+    if (pacienteSelecionado && pacienteSelecionado.id) {
+        window.location.href = `paciente_historico.php?id=${pacienteSelecionado.id}`;
+    }
 }
 
 function removerPaciente() {
@@ -154,6 +169,7 @@ function removerPaciente() {
     document.getElementById('pacienteSelecionado').classList.add('hidden');
     document.getElementById('stepMedicamentos').classList.add('hidden');
     document.getElementById('stepFinalizar').classList.add('hidden');
+    document.getElementById('historicoLista').innerHTML = '<div class="text-center py-2 text-gray-400 text-xs">Carregando...</div>';
     medicamentosCarrinho = [];
     document.getElementById('medicamentosAdicionados').innerHTML = '';
     document.getElementById('pacienteSearch').focus();
@@ -491,6 +507,10 @@ async function finalizarDispensacao() {
         
         if (result.success) {
             mostrarSucesso(result.message || 'Dispensação registrada com sucesso!');
+            // Recarregar histórico se paciente ainda estiver selecionado
+            if (pacienteSelecionado) {
+                await carregarHistoricoDispensacoes(pacienteSelecionado.id);
+            }
             limparTudo();
             carregarLog();
         } else {
@@ -590,4 +610,77 @@ function formatarDataHora(data) {
         hour: '2-digit', 
         minute: '2-digit' 
     });
+}
+
+// ========================================
+// HISTÓRICO DE DISPENSAÇÕES DO PACIENTE
+// ========================================
+async function carregarHistoricoDispensacoes(pacienteId) {
+    const container = document.getElementById('historicoLista');
+    
+    if (!container) {
+        console.error('❌ Container historicoLista não encontrado');
+        return;
+    }
+    
+    if (!pacienteId) {
+        console.error('❌ pacienteId não informado');
+        container.innerHTML = '<div class="text-center py-2 text-red-400 text-xs">Erro: ID do paciente não informado</div>';
+        return;
+    }
+    
+    console.log('🔄 Carregando histórico para paciente_id:', pacienteId);
+    
+    try {
+        const url = `${API_BASE}buscar_dispensacoes_paciente.php?paciente_id=${pacienteId}`;
+        console.log('📡 URL da API:', url);
+        
+        const response = await fetch(url);
+        console.log('📥 Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const text = await response.text();
+        console.log('📥 Response text:', text);
+        
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('❌ Erro ao fazer parse do JSON:', e);
+            throw new Error('Resposta inválida da API');
+        }
+        
+        console.log('📊 Dados recebidos:', data);
+        
+        if (!data.success) {
+            console.error('❌ API retornou erro:', data.message);
+            container.innerHTML = `<div class="text-center py-2 text-red-400 text-xs">${data.message || 'Erro ao buscar dispensações'}</div>`;
+            return;
+        }
+        
+        if (data.dispensacoes && data.dispensacoes.length > 0) {
+            console.log('✅ Renderizando', data.dispensacoes.length, 'dispensações');
+            container.innerHTML = data.dispensacoes.map(d => `
+                <div class="p-2.5 bg-white rounded-lg border border-emerald-100 hover:border-emerald-300 transition-colors">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-xs font-semibold text-gray-800 flex-1 min-w-0 truncate">${d.medicamento_nome}</p>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700">${d.quantidade}un</span>
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">${formatarDataHora(d.data_dispensacao)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            console.log('⚠️ Nenhuma dispensação encontrada ou dados inválidos');
+            const mensagem = data.message || 'Nenhuma dispensação registrada';
+            container.innerHTML = `<div class="text-center py-2 text-gray-400 text-xs">${mensagem}</div>`;
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar histórico:', error);
+        container.innerHTML = `<div class="text-center py-2 text-red-400 text-xs">Erro ao carregar histórico: ${error.message}</div>`;
+    }
 }

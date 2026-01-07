@@ -47,6 +47,32 @@ try {
     $stmt->execute([$receita_id]);
     $itens = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Buscar retiradas (dispensações) para cada item
+    foreach ($itens as &$item) {
+        $stmtRetiradas = $conn->prepare("
+            SELECT 
+                rr.id,
+                rr.quantidade,
+                rr.data_planejada,
+                rr.criado_em,
+                rr.lote_id,
+                l.numero_lote,
+                (SELECT d.id FROM dispensacoes d 
+                 WHERE d.receita_item_id = rr.receita_item_id 
+                 AND d.lote_id = rr.lote_id 
+                 AND d.quantidade = rr.quantidade
+                 AND DATE(d.data_dispensacao) = DATE(COALESCE(rr.data_planejada, rr.criado_em))
+                 LIMIT 1) as dispensacao_id
+            FROM receitas_retiradas rr
+            LEFT JOIN lotes l ON rr.lote_id = l.id
+            WHERE rr.receita_item_id = ?
+            ORDER BY COALESCE(rr.data_planejada, rr.criado_em) DESC
+        ");
+        $stmtRetiradas->execute([$item['id']]);
+        $item['retiradas'] = $stmtRetiradas->fetchAll(PDO::FETCH_ASSOC);
+    }
+    unset($item);
+    
     // Buscar próxima data de dispensação planejada para cada item
     foreach ($itens as &$item) {
         $proximaDataDispensacao = null;
@@ -141,6 +167,7 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
     <title><?php echo htmlspecialchars($pageTitle); ?> - Farmácia Popular</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../css/admin_new.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="admin-shell bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 min-h-screen">
     
@@ -155,6 +182,15 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                         <span class="text-xl sm:text-2xl">💊</span>
                         <span>Dispensar Receita</span>
                         <span class="text-base sm:text-xl">#<?php echo !empty($receita['numero_receita']) ? htmlspecialchars($receita['numero_receita']) : $receita_id; ?></span>
+                        <a 
+                            href="receitas_editar.php?id=<?php echo $receita_id; ?>" 
+                            class="opacity-40 hover:opacity-100 text-blue-500 hover:text-blue-600 transition-all p-1 rounded ml-1"
+                            title="Editar receita"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                            </svg>
+                        </a>
                         <button 
                             onclick="confirmarDeletarReceita()" 
                             class="opacity-40 hover:opacity-100 text-red-500 hover:text-red-600 transition-all p-1 rounded ml-1"
@@ -307,9 +343,22 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                                                 ✓ Dispensar
                                             </button>
                                         <?php elseif ($item['total_retiradas'] >= $item['quantidade_autorizada']): ?>
-                                            <span class="w-full sm:w-auto inline-block px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium text-center">
-                                                ✓ Completo
-                                            </span>
+                                            <div class="w-full sm:w-auto flex items-center gap-2">
+                                                <?php if (!empty($item['retiradas'])): ?>
+                                                    <button 
+                                                        onclick="abrirModalDeletarDispensacoes(<?php echo $item['id']; ?>, '<?php echo addslashes($item['medicamento_nome']); ?>')"
+                                                        class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Deletar dispensações"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                <?php endif; ?>
+                                                <span class="inline-block px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium text-center">
+                                                    ✓ Completo
+                                                </span>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -376,109 +425,44 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
         </div>
     </div>
 
-    <!-- Modal de Alerta Customizado -->
-    <div id="modalAlerta" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
-            <div class="text-center">
-                <div id="alertaIcon" class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-white text-3xl">ℹ</span>
-                </div>
-                <h3 id="alertaTitulo" class="text-xl font-bold text-gray-900 mb-2">Informação</h3>
-                <p id="alertaMensagem" class="text-gray-600 mb-6"></p>
-                <div id="alertaBotoes">
-                    <button onclick="fecharAlerta()" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-semibold transition-all">
-                        OK
-                    </button>
-                </div>
+    <!-- Modal de Deletar Dispensações -->
+    <div id="modalDeletarDispensacoes" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                Deletar Dispensações - <span id="modalMedicamentoNome"></span>
+            </h3>
+            
+            <div id="listaDispensacoes" class="space-y-3 mb-4">
+                <!-- Lista será preenchida via JavaScript -->
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t">
+                <button type="button" onclick="fecharModalDeletarDispensacoes()" class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-all">
+                    Cancelar
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        function mostrarAlerta(mensagem, tipo = 'info', titulo = null) {
-            const modal = document.getElementById('modalAlerta');
-            const icon = document.getElementById('alertaIcon');
-            const tituloEl = document.getElementById('alertaTitulo');
-            const mensagemEl = document.getElementById('alertaMensagem');
-            const botoesContainer = document.getElementById('alertaBotoes');
-            
-            // Definir cores e ícones baseado no tipo
-            const config = {
-                sucesso: {
-                    cor: 'from-green-500 to-emerald-500',
-                    icone: '✓',
-                    titulo: 'Sucesso!'
-                },
-                erro: {
-                    cor: 'from-red-500 to-rose-500',
-                    icone: '✕',
-                    titulo: 'Erro!'
-                },
-                aviso: {
-                    cor: 'from-yellow-500 to-amber-500',
-                    icone: '⚠',
-                    titulo: 'Atenção!'
-                },
-                info: {
-                    cor: 'from-blue-500 to-indigo-500',
-                    icone: 'ℹ',
-                    titulo: 'Informação'
-                }
-            };
-            
-            const tipoConfig = config[tipo] || config.info;
-            
-            icon.className = `w-16 h-16 bg-gradient-to-br ${tipoConfig.cor} rounded-full flex items-center justify-center mx-auto mb-4`;
-            icon.innerHTML = `<span class="text-white text-3xl">${tipoConfig.icone}</span>`;
-            tituloEl.textContent = titulo || tipoConfig.titulo;
-            mensagemEl.textContent = mensagem;
-            
-            // Restaurar botão padrão
-            botoesContainer.innerHTML = '<button onclick="fecharAlerta()" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-semibold transition-all">OK</button>';
-            
-            modal.classList.remove('hidden');
-        }
-
-        function fecharAlerta() {
-            document.getElementById('modalAlerta').classList.add('hidden');
-        }
-
-        // Fechar modal ao clicar fora
-        document.addEventListener('DOMContentLoaded', () => {
-            const modal = document.getElementById('modalAlerta');
-            if (modal) {
-                modal.addEventListener('click', (e) => {
-                    if (e.target.id === 'modalAlerta') {
-                        fecharAlerta();
-                    }
-                });
-            }
-        });
-
         function confirmarDeletarReceita() {
-            mostrarAlerta(
-                'Tem certeza que deseja deletar esta receita? Esta ação não pode ser desfeita.',
-                'aviso',
-                'Confirmar Exclusão'
-            );
-            
-            // Criar botões de confirmação
-            const botoesContainer = document.getElementById('alertaBotoes');
-            botoesContainer.innerHTML = `
-                <div class="flex gap-3">
-                    <button onclick="fecharAlerta()" class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-all">
-                        Cancelar
-                    </button>
-                    <button onclick="deletarReceita()" class="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition-all">
-                        Deletar
-                    </button>
-                </div>
-            `;
+            Swal.fire({
+                title: 'Confirmar Exclusão',
+                text: 'Tem certeza que deseja deletar esta receita? Esta ação não pode ser desfeita.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, deletar!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deletarReceita();
+                }
+            });
         }
 
         async function deletarReceita() {
-            fecharAlerta();
-            
             try {
                 const response = await fetch('api/deletar_receita.php', {
                     method: 'POST',
@@ -493,16 +477,29 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                 const data = await response.json();
                 
                 if (data.success) {
-                    mostrarAlerta('Receita deletada com sucesso!', 'sucesso');
-                    setTimeout(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sucesso!',
+                        text: 'Receita deletada com sucesso!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
                         window.location.href = 'receitas.php';
-                    }, 1500);
+                    });
                 } else {
-                    mostrarAlerta('Erro: ' + data.message, 'erro');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro!',
+                        text: data.message || 'Erro ao deletar receita'
+                    });
                 }
             } catch (error) {
                 console.error('Erro ao deletar receita:', error);
-                mostrarAlerta('Erro ao deletar receita. Verifique o console para mais detalhes.', 'erro');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro!',
+                    text: 'Erro ao deletar receita. Verifique o console para mais detalhes.'
+                });
             }
         }
 
@@ -619,16 +616,29 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
                 const result = await response.json();
                 
                 if (result.success) {
-                    mostrarAlerta('Medicamento dispensado com sucesso!', 'sucesso');
-                    setTimeout(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sucesso!',
+                        text: 'Medicamento dispensado com sucesso!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
                         window.location.reload();
-                    }, 1500);
+                    });
                 } else {
-                    mostrarAlerta('Erro: ' + result.message, 'erro');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro!',
+                        text: result.message || 'Erro ao processar dispensação'
+                    });
                 }
             } catch (error) {
                 console.error('Erro:', error);
-                mostrarAlerta('Erro ao processar dispensação', 'erro');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro!',
+                    text: 'Erro ao processar dispensação'
+                });
             }
         });
 
@@ -636,6 +646,115 @@ $pageTitle = 'Dispensar Receita #' . (!empty($receita['numero_receita']) ? $rece
         document.getElementById('modalDispensacao').addEventListener('click', (e) => {
             if (e.target.id === 'modalDispensacao') {
                 fecharModal();
+            }
+        });
+
+        // Dados dos itens para JavaScript
+        const itensReceita = <?php echo json_encode($itens, JSON_UNESCAPED_UNICODE); ?>;
+
+        function abrirModalDeletarDispensacoes(receitaItemId, medicamentoNome) {
+            const item = itensReceita.find(i => i.id == receitaItemId);
+            if (!item || !item.retiradas || item.retiradas.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Informação',
+                    text: 'Nenhuma dispensação encontrada para este medicamento'
+                });
+                return;
+            }
+            
+            document.getElementById('modalMedicamentoNome').textContent = medicamentoNome;
+            const lista = document.getElementById('listaDispensacoes');
+            
+            lista.innerHTML = item.retiradas.map(retirada => `
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-900">Quantidade: ${retirada.quantidade}</p>
+                        <p class="text-sm text-gray-600">
+                            Data: ${retirada.data_planejada ? new Date(retirada.data_planejada).toLocaleDateString('pt-BR') : new Date(retirada.criado_em).toLocaleDateString('pt-BR')}
+                        </p>
+                        ${retirada.numero_lote ? `<p class="text-xs text-gray-500">Lote: ${retirada.numero_lote}</p>` : ''}
+                    </div>
+                    <button 
+                        onclick="deletarDispensacaoReceita(${retirada.id}, ${retirada.dispensacao_id || 'null'}, ${receitaItemId})"
+                        class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Deletar esta dispensação"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+            
+            document.getElementById('modalDeletarDispensacoes').classList.remove('hidden');
+        }
+
+        function fecharModalDeletarDispensacoes() {
+            document.getElementById('modalDeletarDispensacoes').classList.add('hidden');
+        }
+
+        async function deletarDispensacaoReceita(retiradaId, dispensacaoId, receitaItemId) {
+            const result = await Swal.fire({
+                title: 'Confirmar Exclusão',
+                text: 'Tem certeza que deseja deletar esta dispensação? Esta ação irá reverter o estoque e não pode ser desfeita.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, deletar!',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch('api/deletar_dispensacao_receita.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        retirada_id: retiradaId,
+                        dispensacao_id: dispensacaoId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sucesso!',
+                        text: 'Dispensação deletada com sucesso!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro!',
+                        text: data.message || 'Erro ao deletar dispensação'
+                    });
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro!',
+                    text: 'Erro ao deletar dispensação'
+                });
+            }
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modalDeletarDispensacoes').addEventListener('click', (e) => {
+            if (e.target.id === 'modalDeletarDispensacoes') {
+                fecharModalDeletarDispensacoes();
             }
         });
     </script>
