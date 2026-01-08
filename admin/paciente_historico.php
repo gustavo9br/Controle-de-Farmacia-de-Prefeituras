@@ -104,6 +104,7 @@ try {
         SELECT d.*, 
                m.nome as medicamento_nome, 
                m.descricao as apresentacao,
+               COALESCE(f.nome, u.nome, 'Sistema') as responsavel_nome,
                u.nome as usuario_nome,
                l.numero_lote as lote_numero,
                CASE 
@@ -114,6 +115,7 @@ try {
         INNER JOIN medicamentos m ON m.id = d.medicamento_id
         INNER JOIN lotes l ON l.id = d.lote_id
         INNER JOIN usuarios u ON u.id = d.usuario_id
+        LEFT JOIN funcionarios f ON f.id = d.funcionario_id
         WHERE d.paciente_id = ?
         ORDER BY d.data_dispensacao DESC
         LIMIT 50
@@ -414,7 +416,7 @@ $pageTitle = 'Histórico do Paciente';
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-slate-600">
-                                            <?php echo htmlspecialchars($disp['usuario_nome']); ?>
+                                            <?php echo htmlspecialchars($disp['responsavel_nome'] ?? $disp['usuario_nome'] ?? 'Sistema'); ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -449,7 +451,7 @@ $pageTitle = 'Histórico do Paciente';
                                     </div>
                                     <div>
                                         <span class="text-slate-500">Por:</span>
-                                        <span class="ml-1 text-slate-700"><?php echo htmlspecialchars($disp['usuario_nome']); ?></span>
+                                        <span class="ml-1 text-slate-700"><?php echo htmlspecialchars($disp['responsavel_nome'] ?? $disp['usuario_nome'] ?? 'Sistema'); ?></span>
                                     </div>
                                 </div>
                             </div>

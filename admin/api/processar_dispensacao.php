@@ -19,6 +19,7 @@ if (!$data) {
 if (isset($data['medicamentos']) && is_array($data['medicamentos'])) {
     // Novo formato: múltiplos medicamentos
     $paciente_id = (int)($data['paciente_id'] ?? 0);
+    $funcionario_id = !empty($data['funcionario_id']) ? (int)$data['funcionario_id'] : null;
     $medicamentos = $data['medicamentos'];
     $observacoes = trim($data['observacoes'] ?? '');
     $usuario_id = (int)$_SESSION['user_id'];
@@ -61,10 +62,10 @@ if (isset($data['medicamentos']) && is_array($data['medicamentos'])) {
             // Registrar dispensação
             $stmt = $conn->prepare("
                 INSERT INTO dispensacoes 
-                (paciente_id, medicamento_id, lote_id, quantidade, usuario_id, tipo, observacoes, data_dispensacao)
-                VALUES (?, ?, ?, ?, ?, 'avulsa', ?, NOW())
+                (paciente_id, medicamento_id, lote_id, quantidade, usuario_id, funcionario_id, tipo, observacoes, data_dispensacao)
+                VALUES (?, ?, ?, ?, ?, ?, 'avulsa', ?, NOW())
             ");
-            $stmt->execute([$paciente_id, $medicamento_id, $lote_id, $quantidade, $usuario_id, $observacoes ?: null]);
+            $stmt->execute([$paciente_id, $medicamento_id, $lote_id, $quantidade, $usuario_id, $funcionario_id, $observacoes ?: null]);
             
             // Atualizar estoque do lote
             $stmt = $conn->prepare("UPDATE lotes SET quantidade_atual = quantidade_atual - ? WHERE id = ?");
@@ -102,6 +103,7 @@ if (isset($data['medicamentos']) && is_array($data['medicamentos'])) {
 $medicamento_id = (int)($data['medicamento_id'] ?? 0);
 $lote_id = (int)($data['lote_id'] ?? 0);
 $paciente_id = (int)($data['paciente_id'] ?? 0);
+$funcionario_id = !empty($data['funcionario_id']) ? (int)$data['funcionario_id'] : null;
 $quantidade = (int)($data['quantidade'] ?? 0);
 $tipo = $data['tipo'] ?? 'avulsa';
 $receita_item_id = !empty($data['receita_item_id']) ? (int)$data['receita_item_id'] : null;
@@ -216,8 +218,8 @@ try {
     // 3. Registrar dispensação
     $stmt = $conn->prepare("
         INSERT INTO dispensacoes 
-        (paciente_id, medicamento_id, lote_id, receita_item_id, quantidade, usuario_id, tipo, observacoes, data_dispensacao)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        (paciente_id, medicamento_id, lote_id, receita_item_id, quantidade, usuario_id, funcionario_id, tipo, observacoes, data_dispensacao)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     $stmt->execute([
         $paciente_id,
@@ -226,6 +228,7 @@ try {
         $receita_item_id,
         $quantidade,
         $usuario_id,
+        $funcionario_id,
         $tipo,
         $observacoes ?: null
     ]);

@@ -163,6 +163,7 @@ if ($reportType === 'movimentacao') {
                 mv.lote_id,
                 m.nome AS medicamento_nome,
                 COALESCE(l.numero_lote, "—") AS numero_lote,
+                COALESCE(f.nome, u.nome, "Sistema") AS responsavel_nome,
                 COALESCE(u.nome, "Sistema") AS usuario_nome,
                 d.id AS dispensacao_id,
                 COALESCE(p.nome, "—") AS paciente_nome
@@ -177,6 +178,7 @@ if ($reportType === 'movimentacao') {
                 AND DATE(d.data_dispensacao) = DATE(COALESCE(mv.data_movimentacao, mv.criado_em))
                 AND ABS(TIMESTAMPDIFF(MINUTE, d.data_dispensacao, COALESCE(mv.data_movimentacao, mv.criado_em))) <= 5
             LEFT JOIN pacientes p ON d.paciente_id = p.id
+            LEFT JOIN funcionarios f ON d.funcionario_id = f.id
             ORDER BY COALESCE(mv.data_movimentacao, mv.criado_em) DESC
             LIMIT 100'
         );
@@ -670,7 +672,7 @@ function vencimentoBadgeClass($dias)
                                                     <span class="text-slate-300">—</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo htmlspecialchars($item['usuario_nome']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo htmlspecialchars($item['responsavel_nome'] ?? $item['usuario_nome'] ?? 'Sistema'); ?></td>
                                             <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500">
                                                 <?php echo !empty($item['observacoes']) ? htmlspecialchars($item['observacoes']) : '—'; ?>
                                             </td>

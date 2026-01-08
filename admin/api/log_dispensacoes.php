@@ -26,12 +26,13 @@ try {
             p.nome as paciente_nome,
             m.nome as medicamento_nome,
             l.numero_lote as lote_numero,
-            u.nome as usuario_nome
+            COALESCE(f.nome, u.nome, 'Sistema') as responsavel_nome
         FROM dispensacoes d
         INNER JOIN pacientes p ON d.paciente_id = p.id
         INNER JOIN medicamentos m ON d.medicamento_id = m.id
         INNER JOIN lotes l ON d.lote_id = l.id
         INNER JOIN usuarios u ON d.usuario_id = u.id
+        LEFT JOIN funcionarios f ON d.funcionario_id = f.id
         ORDER BY d.data_dispensacao DESC
         LIMIT $limit
     ";

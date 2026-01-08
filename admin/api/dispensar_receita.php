@@ -29,6 +29,7 @@ if ($receita_item_id <= 0 || $medicamento_id <= 0 || $lote_id <= 0 || $quantidad
 
 $conn = getConnection();
 $usuario_id = $_SESSION['user_id'];
+$funcionario_id = !empty($data['funcionario_id']) ? (int)$data['funcionario_id'] : null;
 
 try {
     $conn->beginTransaction();
@@ -127,15 +128,17 @@ try {
     // 6. Registrar na tabela dispensacoes (histórico geral)
     $stmt = $conn->prepare("
         INSERT INTO dispensacoes 
-        (paciente_id, medicamento_id, lote_id, quantidade, usuario_id, observacoes)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (paciente_id, medicamento_id, lote_id, receita_item_id, quantidade, usuario_id, funcionario_id, tipo, observacoes, data_dispensacao)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'receita', ?, NOW())
     ");
     $stmt->execute([
         $paciente_id,
         $medicamento_id,
         $lote_id,
+        $receita_item_id,
         $quantidade,
         $usuario_id,
+        $funcionario_id,
         'Dispensação via receita #' . $receita_id . ($observacoes ? ' - ' . $observacoes : '')
     ]);
     

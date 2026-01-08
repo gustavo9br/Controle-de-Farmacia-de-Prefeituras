@@ -2,7 +2,21 @@
 let pacienteSelecionado = null;
 let medicamentosCarrinho = [];
 let searchTimeout = null;
+let limiteDispensacoes = 12; // Limite inicial
 const API_BASE = (typeof window !== 'undefined' && window.DISPENSACAO_API_BASE) ? window.DISPENSACAO_API_BASE : 'api/';
+
+// Obter o caminho base do diretório admin
+function getBasePath() {
+    const path = window.location.pathname;
+    // Se estiver em /admin/index.php, retorna /admin
+    // Se estiver em /farmacia/admin/index.php, retorna /farmacia/admin
+    const match = path.match(/^(.+\/)?admin\//);
+    if (match) {
+        return match[0].replace(/\/$/, '');
+    }
+    // Fallback: usar o caminho atual sem o nome do arquivo
+    return path.substring(0, path.lastIndexOf('/'));
+}
 
 // ========================================
 // FUNÇÃO DE ALERTA CUSTOMIZADA
@@ -70,8 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pacienteSearch').addEventListener('input', buscarPacientes);
     document.getElementById('medicamentoSearch').addEventListener('input', buscarMedicamentos);
     
-    carregarLog();
-    setInterval(carregarLog, 30000);
+    carregarLog(true); // Resetar para 12 ao carregar a página
+    setInterval(() => carregarLog(true), 30000); // Resetar para 12 ao atualizar automaticamente
 });
 
 // ========================================
@@ -146,7 +160,8 @@ async function selecionarPaciente(paciente) {
     // Atualizar link do histórico
     const btnHistorico = document.getElementById('btnHistoricoPaciente');
     if (btnHistorico && paciente.id) {
-        btnHistorico.href = `paciente_historico.php?id=${paciente.id}`;
+        const basePath = getBasePath();
+        btnHistorico.href = `${basePath}/paciente_historico.php?id=${paciente.id}`;
     }
     
     document.getElementById('stepMedicamentos').classList.remove('hidden');
@@ -160,7 +175,15 @@ async function selecionarPaciente(paciente) {
 
 function abrirHistoricoPaciente() {
     if (pacienteSelecionado && pacienteSelecionado.id) {
-        window.location.href = `paciente_historico.php?id=${pacienteSelecionado.id}`;
+        const basePath = getBasePath();
+        window.location.href = `${basePath}/paciente_historico.php?id=${pacienteSelecionado.id}`;
+    } else {
+        console.error('Erro: Paciente não selecionado ou ID inválido');
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro!',
+            text: 'Nenhum paciente selecionado para visualizar o histórico.'
+        });
     }
 }
 
@@ -481,21 +504,71 @@ async function finalizarDispensacao() {
         }
     }
     
-    const observacoes = document.getElementById('observacoes').value;
+    // Solicitar senha do funcionário usando SweetAlert2
+    const { value: senhaFuncionario } = await Swal.fire({
+        title: 'Senha do Funcionário',
+        text: 'Digite a senha numérica do funcionário responsável pela dispensação:',
+        input: 'password',
+        inputPlaceholder: 'Digite a senha (apenas números)',
+        inputAttributes: {
+            maxlength: 20,
+            pattern: '[0-9]*',
+            inputmode: 'numeric',
+            autocomplete: 'off'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Confirmar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Por favor, digite a senha!';
+            }
+            if (!/^\d+$/.test(value)) {
+                return 'A senha deve conter apenas números!';
+            }
+        }
+    });
     
-    const dados = {
-        paciente_id: pacienteSelecionado.id,
-        medicamentos: medicamentosCarrinho.map(item => ({
-            medicamento_id: item.id,
-            lote_id: item.lote_selecionado.id,
-            quantidade: item.quantidade
-        })),
-        observacoes: observacoes
-    };
+    if (!senhaFuncionario) {
+        return; // Usuário cancelou
+    }
     
-    console.log('📤 Enviando dados:', dados);
-    
+    // Validar senha do funcionário
     try {
+        const validacaoResponse = await fetch(`${API_BASE}validar_senha_funcionario.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ senha: senhaFuncionario })
+        });
+        
+        const validacaoResult = await validacaoResponse.json();
+        
+        if (!validacaoResult.success || !validacaoResult.funcionario) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Senha Inválida',
+                text: validacaoResult.message || 'Senha incorreta ou funcionário inativo'
+            });
+            return;
+        }
+        
+        const funcionario = validacaoResult.funcionario;
+        
+        const observacoes = document.getElementById('observacoes').value;
+        
+        const dados = {
+            paciente_id: pacienteSelecionado.id,
+            funcionario_id: funcionario.id,
+            medicamentos: medicamentosCarrinho.map(item => ({
+                medicamento_id: item.id,
+                lote_id: item.lote_selecionado.id,
+                quantidade: item.quantidade
+            })),
+            observacoes: observacoes
+        };
+        
+        console.log('📤 Enviando dados:', dados);
+        
         const response = await fetch(`${API_BASE}processar_dispensacao.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -506,20 +579,36 @@ async function finalizarDispensacao() {
         console.log('📥 Resposta:', result);
         
         if (result.success) {
-            mostrarSucesso(result.message || 'Dispensação registrada com sucesso!');
-            // Recarregar histórico se paciente ainda estiver selecionado
-            if (pacienteSelecionado) {
-                await carregarHistoricoDispensacoes(pacienteSelecionado.id);
-            }
+            Swal.fire({
+                icon: 'success',
+                title: 'Sucesso!',
+                text: result.message || 'Dispensação registrada com sucesso!',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                mostrarSucesso(result.message || 'Dispensação registrada com sucesso!');
+                // Recarregar histórico se paciente ainda estiver selecionado
+                if (pacienteSelecionado) {
+                    carregarHistoricoDispensacoes(pacienteSelecionado.id);
+                }
             limparTudo();
-            carregarLog();
+            carregarLog(true); // Resetar para 12 após dispensação
+            });
         } else {
-            mostrarAlerta(result.message || 'Erro ao processar dispensação', 'erro');
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro!',
+                text: result.message || 'Erro ao processar dispensação'
+            });
         }
         
     } catch (error) {
         console.error('❌ Erro:', error);
-        mostrarAlerta('Erro ao processar dispensação: ' + error.message, 'erro');
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro!',
+            text: 'Erro ao processar dispensação: ' + error.message
+        });
     }
 }
 
@@ -551,16 +640,21 @@ function limparTudo() {
 // ========================================
 // LOG DE DISPENSAÇÕES
 // ========================================
-async function carregarLog() {
-    console.log('🔄 Carregando log...');
+async function carregarLog(resetar = false) {
+    if (resetar) {
+        limiteDispensacoes = 12; // Resetar para 12 ao recarregar a página
+    }
+    
+    console.log('🔄 Carregando log... limite:', limiteDispensacoes);
     try {
-        const response = await fetch(`${API_BASE}log_dispensacoes.php?limit=10`);
+        const response = await fetch(`${API_BASE}log_dispensacoes.php?limit=${limiteDispensacoes}`);
         console.log('📥 Response status:', response.status);
         
         const data = await response.json();
         console.log('📊 Dados recebidos:', data);
         
         const container = document.getElementById('logDispensacoes');
+        const btnCarregarMais = document.getElementById('btnCarregarMais');
         
         if (data.success && data.dispensacoes && data.dispensacoes.length > 0) {
             console.log('✅ Renderizando', data.dispensacoes.length, 'dispensações');
@@ -578,21 +672,43 @@ async function carregarLog() {
                             <span class="font-semibold">Lote:</span> ${d.lote_numero}
                         </p>
                         <p class="text-xs text-gray-600">
-                            <span class="font-semibold">👤</span> ${d.usuario_nome}
+                            <span class="font-semibold">👤</span> ${d.responsavel_nome || d.usuario_nome || 'Sistema'}
                         </p>
                     </div>
                 </div>
             `).join('');
+            
+            // Mostrar botão "Carregar Mais" se houver exatamente o limite de dispensações
+            // (isso indica que provavelmente há mais para carregar)
+            if (btnCarregarMais) {
+                if (data.dispensacoes.length === limiteDispensacoes) {
+                    btnCarregarMais.classList.remove('hidden');
+                } else {
+                    btnCarregarMais.classList.add('hidden');
+                }
+            }
         } else {
             console.log('⚠️ Sem dispensações ou erro:', data);
             const mensagem = data.message || 'Nenhuma dispensação registrada ainda';
             container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-400 text-sm">${mensagem}</div>`;
+            if (btnCarregarMais) {
+                btnCarregarMais.classList.add('hidden');
+            }
         }
     } catch (error) {
         console.error('❌ Erro ao carregar log:', error);
         const container = document.getElementById('logDispensacoes');
         container.innerHTML = '<div class="col-span-full text-center py-8 text-red-400 text-sm">Erro ao carregar dispensações</div>';
+        const btnCarregarMais = document.getElementById('btnCarregarMais');
+        if (btnCarregarMais) {
+            btnCarregarMais.classList.add('hidden');
+        }
     }
+}
+
+async function carregarMaisDispensacoes() {
+    limiteDispensacoes += 12; // Adicionar mais 12
+    await carregarLog(false); // Não resetar o limite
 }
 
 function formatarData(data) {

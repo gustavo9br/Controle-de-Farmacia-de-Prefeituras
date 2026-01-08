@@ -39,6 +39,7 @@ $pageTitle = "Dispensação de Medicamentos";
     
     <title><?php echo $pageTitle; ?> - Gov Farma</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="../css/admin_new.css">
 </head>
 <body class="admin-shell min-h-screen">
@@ -181,15 +182,23 @@ $pageTitle = "Dispensação de Medicamentos";
 
         <!-- Log de Dispensações (Abaixo com espaçamento maior) -->
         <div class="glass-card p-4 mt-20">
-            <div class="flex items-center gap-2 mb-3">
-                <span class="text-base">📋</span>
-                <h3 class="text-base font-semibold text-gray-800">Últimas Dispensações</h3>
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">📋</span>
+                    <h3 class="text-base font-semibold text-gray-800">Últimas Dispensações</h3>
+                </div>
             </div>
             
             <div id="logDispensacoes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div class="col-span-full text-center py-8 text-gray-400 text-sm">
                     Carregando...
                 </div>
+            </div>
+            
+            <div id="btnCarregarMais" class="hidden mt-4 text-center">
+                <button onclick="carregarMaisDispensacoes()" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg transition-all text-sm font-medium shadow-md">
+                    Carregar Mais
+                </button>
             </div>
         </div>
     </main>

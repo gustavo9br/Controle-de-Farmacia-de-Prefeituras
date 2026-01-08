@@ -74,7 +74,9 @@ if ($reportType === 'estoque' || $reportType === 'estoque_minimo') {
         }, $rows);
 
         $totalMedicamentos = count($data);
-        $totalUnidades = array_reduce($data, static fn ($carry, $item) => $carry + $item['estoque_total'], 0);
+        $totalUnidades = array_reduce($data, static function ($carry, $item) {
+            return $carry + $item['estoque_total'];
+        }, 0);
         $abaixoMinimo = array_reduce($data, static function ($carry, $item) {
             if ($item['estoque_minimo'] > 0 && $item['estoque_total'] < $item['estoque_minimo']) {
                 return $carry + 1;
@@ -83,7 +85,9 @@ if ($reportType === 'estoque' || $reportType === 'estoque_minimo') {
         }, 0);
 
         if ($reportType === 'estoque_minimo') {
-            $data = array_values(array_filter($data, static fn ($item) => $item['estoque_minimo'] > 0 && $item['estoque_total'] < $item['estoque_minimo']));
+            $data = array_values(array_filter($data, static function ($item) {
+                return $item['estoque_minimo'] > 0 && $item['estoque_total'] < $item['estoque_minimo'];
+            }));
         }
 
         $metrics = [
@@ -124,10 +128,18 @@ if ($reportType === 'vencimento') {
 
         $metrics = [
             'totalLotes' => count($data),
-            'vencidos' => array_reduce($data, static fn ($carry, $item) => $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] < 0 ? 1 : 0), 0),
-            'ate30' => array_reduce($data, static fn ($carry, $item) => $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] >= 0 && $item['dias_restantes'] <= 30 ? 1 : 0), 0),
-            'ate60' => array_reduce($data, static fn ($carry, $item) => $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] > 30 && $item['dias_restantes'] <= 60 ? 1 : 0), 0),
-            'ate90' => array_reduce($data, static fn ($carry, $item) => $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] > 60 && $item['dias_restantes'] <= 90 ? 1 : 0), 0),
+            'vencidos' => array_reduce($data, static function ($carry, $item) {
+                return $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] < 0 ? 1 : 0);
+            }, 0),
+            'ate30' => array_reduce($data, static function ($carry, $item) {
+                return $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] >= 0 && $item['dias_restantes'] <= 30 ? 1 : 0);
+            }, 0),
+            'ate60' => array_reduce($data, static function ($carry, $item) {
+                return $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] > 30 && $item['dias_restantes'] <= 60 ? 1 : 0);
+            }, 0),
+            'ate90' => array_reduce($data, static function ($carry, $item) {
+                return $carry + ($item['dias_restantes'] !== null && $item['dias_restantes'] > 60 && $item['dias_restantes'] <= 90 ? 1 : 0);
+            }, 0),
         ];
     } catch (PDOException $e) {
         $errors[] = 'Erro ao carregar dados de vencimento: ' . $e->getMessage();
@@ -147,13 +159,24 @@ if ($reportType === 'movimentacao') {
                 mv.observacoes,
                 mv.data_movimentacao,
                 mv.criado_em,
+                mv.medicamento_id,
+                mv.lote_id,
                 m.nome AS medicamento_nome,
                 COALESCE(l.numero_lote, "—") AS numero_lote,
-                COALESCE(u.nome, "Sistema") AS usuario_nome
+                COALESCE(u.nome, "Sistema") AS usuario_nome,
+                d.id AS dispensacao_id,
+                COALESCE(p.nome, "—") AS paciente_nome
             FROM movimentacoes mv
             LEFT JOIN medicamentos m ON mv.medicamento_id = m.id
             LEFT JOIN lotes l ON mv.lote_id = l.id
             LEFT JOIN usuarios u ON mv.usuario_id = u.id
+            LEFT JOIN dispensacoes d ON mv.tipo = "dispensacao" 
+                AND d.medicamento_id = mv.medicamento_id 
+                AND d.lote_id = mv.lote_id 
+                AND d.quantidade = mv.quantidade
+                AND DATE(d.data_dispensacao) = DATE(COALESCE(mv.data_movimentacao, mv.criado_em))
+                AND ABS(TIMESTAMPDIFF(MINUTE, d.data_dispensacao, COALESCE(mv.data_movimentacao, mv.criado_em))) <= 5
+            LEFT JOIN pacientes p ON d.paciente_id = p.id
             ORDER BY COALESCE(mv.data_movimentacao, mv.criado_em) DESC
             LIMIT 100'
         );
@@ -162,8 +185,12 @@ if ($reportType === 'movimentacao') {
 
         $metrics = [
             'totalRegistros' => count($data),
-            'entradas' => array_reduce($data, static fn ($carry, $item) => $carry + ($item['tipo'] === 'entrada' ? 1 : 0), 0),
-            'saidas' => array_reduce($data, static fn ($carry, $item) => $carry + ($item['tipo'] === 'saida' || $item['tipo'] === 'dispensacao' ? 1 : 0), 0),
+            'entradas' => array_reduce($data, static function ($carry, $item) {
+                return $carry + ($item['tipo'] === 'entrada' ? 1 : 0);
+            }, 0),
+            'saidas' => array_reduce($data, static function ($carry, $item) {
+                return $carry + ($item['tipo'] === 'saida' || $item['tipo'] === 'dispensacao' ? 1 : 0);
+            }, 0),
         ];
     } catch (PDOException $e) {
         $errors[] = 'Erro ao carregar dados de movimentação: ' . $e->getMessage();
@@ -222,17 +249,27 @@ function vencimentoBadgeClass($dias)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Relatórios completos do sistema de gestão de farmácia">
+    <meta name="keywords" content="relatórios, estoque, movimentação, vencimento, farmácia">
+    <meta name="author" content="Sistema Farmácia">
     <meta name="robots" content="noindex, nofollow">
+
     <meta property="og:title" content="<?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?>">
     <meta property="og:description" content="Relatórios completos do sistema de gestão de farmácia">
     <meta property="og:type" content="website">
     <meta property="og:image" content="../images/logo.svg">
+
     <link rel="icon" type="image/svg+xml" href="../images/logo.svg">
+    <link rel="shortcut icon" type="image/svg+xml" href="../images/logo.svg">
+    <link rel="apple-touch-icon" href="../images/logo.svg">
+
+    <?php include '../includes/pwa_head.php'; ?>
+
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo SYSTEM_NAME; ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -269,310 +306,470 @@ function vencimentoBadgeClass($dias)
     </style>
 </head>
 <body class="admin-shell">
-    <?php include __DIR__ . '/includes/sidebar.php'; ?>
-    <main class="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-12 lg:py-10 space-y-6 lg:space-y-8">
-        <header>
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <div class="space-y-2">
-                    <span class="text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-500">Relatórios</span>
-                    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($sectionTitle); ?></h1>
-                    <p class="max-w-2xl text-sm sm:text-base text-slate-500"><?php echo htmlspecialchars($sectionSubtitle); ?></p>
+    <button id="mobileMenuButton" class="mobile-menu-button" aria-label="Abrir menu">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
+    <div class="flex min-h-screen">
+        <?php include __DIR__ . '/includes/sidebar.php'; ?>
+
+        <main class="content-area">
+            <div class="space-y-10">
+            <header>
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="space-y-2">
+                        <span class="text-xs sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.3em] text-slate-500">Relatórios</span>
+                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900"><?php echo htmlspecialchars($sectionTitle); ?></h1>
+                        <p class="max-w-2xl text-sm sm:text-base text-slate-500"><?php echo htmlspecialchars($sectionSubtitle); ?></p>
+                    </div>
+                    <?php if (!empty($reportType)): ?>
+                        <div class="flex items-center gap-3">
+                            <a href="relatorios.php" class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 shadow hover:shadow-lg transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                Voltar
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                <?php if (!empty($reportType)): ?>
-                    <div class="flex items-center gap-3">
-                        <a href="relatorios.php" class="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 shadow hover:shadow-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                            Voltar
+            </header>
+
+            <?php if (!empty($errors)): ?>
+                <div class="glass-card border border-rose-200/60 bg-rose-50/80 px-6 py-4">
+                    <strong class="block text-sm font-semibold text-rose-700">Atenção</strong>
+                    <ul class="mt-2 space-y-1 text-sm text-rose-700">
+                        <?php foreach ($errors as $message): ?>
+                            <li>• <?php echo htmlspecialchars($message); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
+            <?php if (empty($reportType)): ?>
+                <section class="glass-card p-6 lg:p-8 space-y-8">
+                    <div class="space-y-2">
+                        <h2 class="text-xl font-semibold text-slate-900">Selecione um tipo de relatório:</h2>
+                        <p class="text-sm text-slate-500">Escolha abaixo a visão desejada para visualizar informações detalhadas sobre o estoque.</p>
+                    </div>
+                    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                        <a href="?tipo=estoque" class="report-card">
+                            <div class="glass-card h-full p-6 text-center hover:border-primary-200">
+                                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 9.75V4.875c0-.621-.504-1.125-1.125-1.125h-9.75c-.621 0-1.125.504-1.125 1.125v5.25M16.5 9.75H18c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125H6A1.125 1.125 0 0 1 4.875 19.5v-8.25c0-.621.504-1.125 1.125-1.125h1.5m9 0h-9"/></svg>
+                                </div>
+                                <h3 class="mt-4 text-lg font-semibold text-slate-900">Estoque</h3>
+                                <p class="mt-2 text-sm text-slate-500">Visão geral do estoque atual de medicamentos</p>
+                            </div>
+                        </a>
+                        <a href="?tipo=vencimento" class="report-card">
+                            <div class="glass-card h-full p-6 text-center hover:border-primary-200">
+                                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6l4 2m5-.25A8.75 8.75 0 1 1 12 3.25a8.75 8.75 0 0 1 9 8.5Z"/></svg>
+                                </div>
+                                <h3 class="mt-4 text-lg font-semibold text-slate-900">Vencimento</h3>
+                                <p class="mt-2 text-sm text-slate-500">Medicamentos próximos ao vencimento</p>
+                            </div>
+                        </a>
+                        <a href="?tipo=movimentacao" class="report-card">
+                            <div class="glass-card h-full p-6 text-center hover:border-primary-200">
+                                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"/></svg>
+                                </div>
+                                <h3 class="mt-4 text-lg font-semibold text-slate-900">Movimentação</h3>
+                                <p class="mt-2 text-sm text-slate-500">Histórico de entradas e saídas</p>
+                            </div>
+                        </a>
+                        <a href="?tipo=estoque_minimo" class="report-card">
+                            <div class="glass-card h-full p-6 text-center hover:border-primary-200">
+                                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 3h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                                </div>
+                                <h3 class="mt-4 text-lg font-semibold text-slate-900">Estoque Mínimo</h3>
+                                <p class="mt-2 text-sm text-slate-500">Medicamentos abaixo do estoque mínimo</p>
+                            </div>
                         </a>
                     </div>
-                <?php endif; ?>
+                </section>
+            <?php endif; ?>
+
+            <?php if ($reportType === 'estoque' && empty($errors)): ?>
+                <section class="space-y-6">
+                    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Medicamentos</span>
+                            <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalMedicamentos'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Medicamentos ativos cadastrados com estoque registrado</p>
+                        </div>
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Unidades em estoque</span>
+                            <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalUnidades'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Total de unidades disponíveis considerando todos os lotes</p>
+                        </div>
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Abaixo do mínimo</span>
+                            <p class="mt-1 text-3xl font-bold text-rose-600"><?php echo formatNumber($metrics['abaixoMinimo'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Itens que precisam de reposição urgente</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-0">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
+                            <h2 class="text-lg font-semibold text-slate-900">Detalhamento do estoque</h2>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400"><?php echo formatNumber(count($data)); ?> itens</span>
+                        </div>
+                        <div class="responsive-table-wrapper">
+                            <table class="min-w-full divide-y divide-slate-100 text-left">
+                                <thead class="bg-white/60">
+                                    <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        <th class="px-4 sm:px-6 py-3">Medicamento</th>
+                                        <th class="px-4 sm:px-6 py-3">Apresentação</th>
+                                        <th class="px-4 sm:px-6 py-3">Estoque Total</th>
+                                        <th class="px-4 sm:px-6 py-3">Estoque Mínimo</th>
+                                        <th class="px-4 sm:px-6 py-3">Situação</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white/80">
+                                    <?php foreach ($data as $item): ?>
+                                        <tr class="text-sm text-slate-600">
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <div class="font-semibold text-slate-900"><?php echo htmlspecialchars($item['nome']); ?></div>
+                                                <?php if (!empty($item['codigo_barras'])): ?>
+                                                    <div class="text-xs text-slate-400">Código: <?php echo htmlspecialchars($item['codigo_barras']); ?></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo htmlspecialchars($item['apresentacao']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-slate-900"><?php echo formatNumber($item['estoque_total']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo $item['estoque_minimo'] > 0 ? formatNumber($item['estoque_minimo']) : '—'; ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold <?php echo estoqueBadgeClass($item['estoque_total'], $item['estoque_minimo']); ?>">
+                                                    <?php if ($item['estoque_minimo'] > 0 && $item['estoque_total'] < $item['estoque_minimo']): ?>
+                                                        Abaixo do mínimo
+                                                    <?php elseif ($item['estoque_total'] <= 0): ?>
+                                                        Sem estoque
+                                                    <?php else: ?>
+                                                        Dentro do esperado
+                                                    <?php endif; ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    <?php if (empty($data)): ?>
+                                        <tr>
+                                            <td colspan="6" class="px-6 py-5 text-center text-sm text-slate-400">Nenhum registro encontrado.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <?php if ($reportType === 'estoque_minimo' && empty($errors)): ?>
+                <section class="space-y-6">
+                    <div class="alert-card bg-amber-50 text-amber-700 border-amber-100">
+                        <div class="flex items-start gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 3h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                            <div>
+                                <strong class="font-semibold">Atenção com esses itens</strong>
+                                <p class="text-sm leading-relaxed">A lista abaixo mostra medicamentos com estoque total abaixo do mínimo configurado. Planeje a reposição para evitar falta de medicamentos.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-0">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
+                            <h2 class="text-lg font-semibold text-slate-900">Medicamentos abaixo do estoque mínimo</h2>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400"><?php echo formatNumber(count($data)); ?> itens</span>
+                        </div>
+                        <div class="responsive-table-wrapper">
+                            <table class="min-w-full divide-y divide-slate-100 text-left">
+                                <thead class="bg-white/60">
+                                    <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        <th class="px-4 sm:px-6 py-3">Medicamento</th>
+                                        <th class="px-4 sm:px-6 py-3">Estoque Total</th>
+                                        <th class="px-4 sm:px-6 py-3">Estoque Mínimo</th>
+                                        <th class="px-4 sm:px-6 py-3">Déficit</th>
+                                        <th class="px-4 sm:px-6 py-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white/80">
+                                    <?php foreach ($data as $item): ?>
+                                        <?php $deficit = max(0, $item['estoque_minimo'] - $item['estoque_total']); ?>
+                                        <tr class="text-sm text-slate-600">
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <div class="font-semibold text-slate-900"><?php echo htmlspecialchars($item['nome']); ?></div>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-slate-900"><?php echo formatNumber($item['estoque_total']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo formatNumber($item['estoque_minimo']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-rose-600 font-semibold"><?php echo formatNumber($deficit); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Reposição urgente</span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    <?php if (empty($data)): ?>
+                                        <tr>
+                                            <td colspan="5" class="px-6 py-5 text-center text-sm text-slate-400">Todos os medicamentos estão dentro do estoque mínimo configurado.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <?php if ($reportType === 'vencimento' && empty($errors)): ?>
+                <section class="space-y-6">
+                    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total de lotes</span>
+                            <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalLotes'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Lotes com validade até 90 dias a partir de hoje</p>
+                        </div>
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Vencidos</span>
+                            <p class="mt-1 text-3xl font-bold text-rose-600"><?php echo formatNumber($metrics['vencidos'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Lotes que já ultrapassaram a data de validade</p>
+                        </div>
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Até 30 dias</span>
+                            <p class="mt-1 text-3xl font-bold text-amber-600"><?php echo formatNumber($metrics['ate30'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Lotes que vencem em até 30 dias</p>
+                        </div>
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">30 a 90 dias</span>
+                            <p class="mt-1 text-3xl font-bold text-blue-600"><?php echo formatNumber(($metrics['ate60'] ?? 0) + ($metrics['ate90'] ?? 0)); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Lotes com vencimento entre 31 e 90 dias</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-0">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
+                            <h2 class="text-lg font-semibold text-slate-900">Lotes críticos</h2>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400"><?php echo formatNumber(count($data)); ?> lotes</span>
+                        </div>
+                        <div class="responsive-table-wrapper">
+                            <table class="min-w-full divide-y divide-slate-100 text-left">
+                                <thead class="bg-white/60">
+                                    <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        <th class="px-4 sm:px-6 py-3">Medicamento</th>
+                                        <th class="px-4 sm:px-6 py-3">Lote</th>
+                                        <th class="px-4 sm:px-6 py-3">Validade</th>
+                                        <th class="px-4 sm:px-6 py-3">Dias restantes</th>
+                                        <th class="px-4 sm:px-6 py-3">Quantidade</th>
+                                        <th class="px-4 sm:px-6 py-3">Situação</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white/80">
+                                    <?php foreach ($data as $item): ?>
+                                        <tr class="text-sm text-slate-600">
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <div class="font-semibold text-slate-900"><?php echo htmlspecialchars($item['nome']); ?></div>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 font-mono text-xs text-slate-500 uppercase"><?php echo htmlspecialchars($item['numero_lote']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo formatarData($item['data_validade']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold <?php echo vencimentoBadgeClass($item['dias_restantes']); ?>">
+                                                    <?php if ($item['dias_restantes'] === null): ?>
+                                                        —
+                                                    <?php elseif ($item['dias_restantes'] < 0): ?>
+                                                        Vencido há <?php echo formatNumber(abs($item['dias_restantes'])); ?> dias
+                                                    <?php elseif ($item['dias_restantes'] === 0): ?>
+                                                        Vence hoje
+                                                    <?php else: ?>
+                                                        <?php echo formatNumber($item['dias_restantes']); ?> dias
+                                                    <?php endif; ?>
+                                                </span>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-slate-900"><?php echo formatNumber($item['quantidade_atual']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <?php if ($item['dias_restantes'] !== null && $item['dias_restantes'] < 0): ?>
+                                                    <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Vencido</span>
+                                                <?php elseif ($item['dias_restantes'] !== null && $item['dias_restantes'] <= 30): ?>
+                                                    <span class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">Urgente</span>
+                                                <?php else: ?>
+                                                    <span class="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">Planejar uso</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    <?php if (empty($data)): ?>
+                                        <tr>
+                                            <td colspan="6" class="px-6 py-5 text-center text-sm text-slate-400">Nenhum lote com vencimento próximo foi encontrado.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <?php if ($reportType === 'movimentacao' && empty($errors)): ?>
+                <section class="space-y-6">
+                    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Registros analisados</span>
+                            <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalRegistros'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Últimos 100 registros de movimentação</p>
+                        </div>
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Entradas</span>
+                            <p class="mt-1 text-3xl font-bold text-emerald-600"><?php echo formatNumber($metrics['entradas'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Inclusões de estoque registradas</p>
+                        </div>
+                        <div class="glass-card p-6">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Saídas</span>
+                            <p class="mt-1 text-3xl font-bold text-rose-600"><?php echo formatNumber($metrics['saidas'] ?? 0); ?></p>
+                            <p class="mt-2 text-sm text-slate-500">Saídas por dispensação, consumo ou ajustes</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-0">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-white/60 bg-white/70">
+                            <h2 class="text-lg font-semibold text-slate-900">Movimentações recentes</h2>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Até 100 registros</span>
+                        </div>
+                        <div class="responsive-table-wrapper">
+                            <table class="min-w-full divide-y divide-slate-100 text-left">
+                                <thead class="bg-white/60">
+                                    <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        <th class="px-4 sm:px-6 py-3">Data</th>
+                                        <th class="px-4 sm:px-6 py-3">Tipo</th>
+                                        <th class="px-4 sm:px-6 py-3">Medicamento</th>
+                                        <th class="px-4 sm:px-6 py-3">Lote</th>
+                                        <th class="px-4 sm:px-6 py-3">Quantidade</th>
+                                        <th class="px-4 sm:px-6 py-3">Paciente</th>
+                                        <th class="px-4 sm:px-6 py-3">Usuário</th>
+                                        <th class="px-4 sm:px-6 py-3">Observações</th>
+                                        <th class="px-4 sm:px-6 py-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white/80">
+                                    <?php foreach ($data as $item): ?>
+                                        <tr class="text-sm text-slate-600" id="movimentacao-row-<?php echo $item['id']; ?>">
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo formatarData($item['data_movimentacao'] ?? $item['criado_em']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold <?php echo movimentacaoBadgeClass($item['tipo']); ?>">
+                                                    <?php echo ucfirst($item['tipo']); ?>
+                                                </span>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <div class="font-semibold text-slate-900"><?php echo htmlspecialchars($item['medicamento_nome'] ?? '—'); ?></div>
+                                                <?php if (!empty($item['motivo'])): ?>
+                                                    <div class="text-xs text-slate-400">Motivo: <?php echo htmlspecialchars($item['motivo']); ?></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500 font-mono text-xs uppercase"><?php echo htmlspecialchars($item['numero_lote']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-slate-900"><?php echo formatNumber($item['quantidade']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500">
+                                                <?php if ($item['tipo'] === 'dispensacao' && !empty($item['paciente_nome']) && $item['paciente_nome'] !== '—'): ?>
+                                                    <span class="font-medium text-slate-700"><?php echo htmlspecialchars($item['paciente_nome']); ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-slate-300">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500"><?php echo htmlspecialchars($item['usuario_nome']); ?></td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4 text-slate-500">
+                                                <?php echo !empty($item['observacoes']) ? htmlspecialchars($item['observacoes']) : '—'; ?>
+                                            </td>
+                                            <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                <?php if ($item['tipo'] === 'dispensacao' && !empty($item['dispensacao_id'])): ?>
+                                                    <button 
+                                                        onclick="deletarDispensacao(<?php echo $item['dispensacao_id']; ?>, <?php echo $item['id']; ?>)"
+                                                        class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Deletar dispensação"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span class="text-slate-300">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    <?php if (empty($data)): ?>
+                                        <tr>
+                                            <td colspan="9" class="px-6 py-5 text-center text-sm text-slate-400">Nenhuma movimentação registrada até o momento.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            <?php endif; ?>
             </div>
-        </header>
+        </main>
+    </div>
 
-        <?php if (!empty($errors)): ?>
-            <div class="glass-card border border-rose-200/60 bg-rose-50/80 px-6 py-4">
-                <strong class="block text-sm font-semibold text-rose-700">Atenção</strong>
-                <ul class="mt-2 space-y-1 text-sm text-rose-700">
-                    <?php foreach ($errors as $message): ?>
-                        <li>• <?php echo htmlspecialchars($message); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
+    <script src="../admin/js/sidebar.js" defer></script>
+    <script>
+        async function deletarDispensacao(dispensacaoId, movimentacaoId) {
+            const result = await Swal.fire({
+                title: 'Confirmar Exclusão',
+                text: 'Tem certeza que deseja deletar esta dispensação? Esta ação irá reverter o estoque e não pode ser desfeita.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, deletar!',
+                cancelButtonText: 'Cancelar'
+            });
 
-        <?php if (empty($reportType)): ?>
-            <section class="glass-card p-6 lg:p-8 space-y-8">
-                <div class="space-y-2">
-                    <h2 class="text-xl font-semibold text-slate-900">Selecione um tipo de relatório:</h2>
-                    <p class="text-sm text-slate-500">Escolha abaixo a visão desejada para visualizar informações detalhadas sobre o estoque.</p>
-                </div>
-                <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                    <a href="?tipo=estoque" class="report-card">
-                        <div class="glass-card h-full p-6 text-center hover:border-primary-200">
-                            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-primary-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 9.75V4.875c0-.621-.504-1.125-1.125-1.125h-9.75c-.621 0-1.125.504-1.125 1.125v5.25M16.5 9.75H18c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125H6A1.125 1.125 0 0 1 4.875 19.5v-8.25c0-.621.504-1.125 1.125-1.125h1.5m9 0h-9"/></svg>
-                            </div>
-                            <h3 class="mt-4 text-lg font-semibold text-slate-900">Estoque</h3>
-                            <p class="mt-2 text-sm text-slate-500">Visão geral do estoque atual de medicamentos</p>
-                        </div>
-                    </a>
-                    <a href="?tipo=vencimento" class="report-card">
-                        <div class="glass-card h-full p-6 text-center hover:border-primary-200">
-                            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6l4 2m5-.25A8.75 8.75 0 1 1 12 3.25a8.75 8.75 0 0 1 9 8.5Z"/></svg>
-                            </div>
-                            <h3 class="mt-4 text-lg font-semibold text-slate-900">Vencimento</h3>
-                            <p class="mt-2 text-sm text-slate-500">Medicamentos próximos ao vencimento</p>
-                        </div>
-                    </a>
-                    <a href="?tipo=movimentacao" class="report-card">
-                        <div class="glass-card h-full p-6 text-center hover:border-primary-200">
-                            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"/></svg>
-                            </div>
-                            <h3 class="mt-4 text-lg font-semibold text-slate-900">Movimentação</h3>
-                            <p class="mt-2 text-sm text-slate-500">Histórico de entradas e saídas</p>
-                        </div>
-                    </a>
-                    <a href="?tipo=estoque_minimo" class="report-card">
-                        <div class="glass-card h-full p-6 text-center hover:border-primary-200">
-                            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 3h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-                            </div>
-                            <h3 class="mt-4 text-lg font-semibold text-slate-900">Estoque Mínimo</h3>
-                            <p class="mt-2 text-sm text-slate-500">Medicamentos abaixo do estoque mínimo</p>
-                        </div>
-                    </a>
-                </div>
-            </section>
-        <?php endif; ?>
+            if (!result.isConfirmed) {
+                return;
+            }
 
-        <?php if ($reportType === 'estoque' && empty($errors)): ?>
-            <section class="space-y-6">
-                <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Medicamentos</span>
-                        <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalMedicamentos'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Medicamentos ativos cadastrados com estoque registrado</p>
-                    </div>
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Unidades em estoque</span>
-                        <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalUnidades'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Total de unidades disponíveis considerando todos os lotes</p>
-                    </div>
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Abaixo do mínimo</span>
-                        <p class="mt-1 text-3xl font-bold text-rose-600"><?php echo formatNumber($metrics['abaixoMinimo'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Itens que precisam de reposição urgente</p>
-                    </div>
-                </div>
+            try {
+                const response = await fetch(`../admin/api/deletar_dispensacao.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dispensacao_id: dispensacaoId,
+                        movimentacao_id: movimentacaoId
+                    })
+                });
 
-                <div class="glass-card overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-100 text-left">
-                            <thead class="bg-white">
-                                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-6 py-3">Medicamento</th>
-                                    <th class="px-6 py-3">Apresentação</th>
-                                    <th class="px-6 py-3">Estoque Total</th>
-                                    <th class="px-6 py-3">Estoque Mínimo</th>
-                                    <th class="px-6 py-3 text-right">Situação</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                <?php foreach ($data as $row): ?>
-                                    <tr class="text-sm text-slate-600">
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-col">
-                                                <span class="font-semibold text-slate-900"><?php echo htmlspecialchars($row['nome']); ?></span>
-                                                <span class="text-xs text-slate-400">Código: <?php echo htmlspecialchars($row['codigo_barras'] ?? '—'); ?></span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4"><?php echo htmlspecialchars($row['apresentacao']); ?></td>
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600"><?php echo formatNumber($row['estoque_total']); ?></span>
-                                        </td>
-                                        <td class="px-6 py-4"><?php echo formatNumber($row['estoque_minimo']); ?></td>
-                                        <td class="px-6 py-4 text-right">
-                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo estoqueBadgeClass($row['estoque_total'], $row['estoque_minimo']); ?>">
-                                                <?php if ($row['estoque_minimo'] <= 0): ?>Sem mínimo<?php elseif ($row['estoque_total'] <= 0): ?>Sem estoque<?php elseif ($row['estoque_total'] < $row['estoque_minimo']): ?>Abaixo do mínimo<?php else: ?>Adequado<?php endif; ?>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-        <?php endif; ?>
+                const data = await response.json();
 
-        <?php if ($reportType === 'vencimento' && empty($errors)): ?>
-            <section class="space-y-6">
-                <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lotes Monitorados</span>
-                        <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalLotes'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Lotes com validade até 90 dias</p>
-                    </div>
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-rose-600">Vencidos</span>
-                        <p class="mt-1 text-3xl font-bold text-rose-600"><?php echo formatNumber($metrics['vencidos'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Lotes com validade expirada</p>
-                    </div>
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-amber-600">Até 30 dias</span>
-                        <p class="mt-1 text-3xl font-bold text-amber-600"><?php echo formatNumber($metrics['ate30'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Lotes que vencem em até 30 dias</p>
-                    </div>
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">Até 60/90 dias</span>
-                        <p class="mt-1 text-3xl font-bold text-blue-600"><?php echo formatNumber(($metrics['ate60'] ?? 0) + ($metrics['ate90'] ?? 0)); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Lotes que vencem entre 31 e 90 dias</p>
-                    </div>
-                </div>
-
-                <div class="glass-card overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-100 text-left">
-                            <thead class="bg-white">
-                                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-6 py-3">Medicamento</th>
-                                    <th class="px-6 py-3">Número do Lote</th>
-                                    <th class="px-6 py-3">Validade</th>
-                                    <th class="px-6 py-3">Dias Restantes</th>
-                                    <th class="px-6 py-3">Quantidade</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                <?php foreach ($data as $row): ?>
-                                    <tr class="text-sm text-slate-600">
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-col">
-                                                <span class="font-semibold text-slate-900"><?php echo htmlspecialchars($row['nome']); ?></span>
-                                                <span class="text-xs text-slate-400">Código: <?php echo htmlspecialchars($row['codigo_barras'] ?? '—'); ?></span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4"><?php echo htmlspecialchars($row['numero_lote']); ?></td>
-                                        <td class="px-6 py-4"><?php echo date('d/m/Y', strtotime($row['data_validade'])); ?></td>
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo vencimentoBadgeClass($row['dias_restantes']); ?>">
-                                                <?php echo $row['dias_restantes'] === null ? '—' : ($row['dias_restantes'] < 0 ? 'Vencido' : $row['dias_restantes'] . ' dias'); ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4"><?php echo formatNumber($row['quantidade_atual']); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-        <?php endif; ?>
-
-        <?php if ($reportType === 'movimentacao' && empty($errors)): ?>
-            <section class="space-y-6">
-                <div class="grid gap-5 sm:grid-cols-3">
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Registros</span>
-                        <p class="mt-1 text-3xl font-bold text-slate-900"><?php echo formatNumber($metrics['totalRegistros'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Movimentações armazenadas (últimos 100 registros)</p>
-                    </div>
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Entradas</span>
-                        <p class="mt-1 text-3xl font-bold text-emerald-600"><?php echo formatNumber($metrics['entradas'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Registros de entrada no estoque</p>
-                    </div>
-                    <div class="glass-card p-6">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-rose-600">Saídas</span>
-                        <p class="mt-1 text-3xl font-bold text-rose-600"><?php echo formatNumber($metrics['saidas'] ?? 0); ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Retiradas, dispensações e ajustes negativos</p>
-                    </div>
-                </div>
-
-                <div class="glass-card overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-100 text-left">
-                            <thead class="bg-white">
-                                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-6 py-3">Medicamento</th>
-                                    <th class="px-6 py-3">Lote</th>
-                                    <th class="px-6 py-3">Tipo</th>
-                                    <th class="px-6 py-3">Quantidade</th>
-                                    <th class="px-6 py-3">Data</th>
-                                    <th class="px-6 py-3">Usuário</th>
-                                    <th class="px-6 py-3">Observações</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                <?php foreach ($data as $row): ?>
-                                    <tr class="text-sm text-slate-600">
-                                        <td class="px-6 py-4"><?php echo htmlspecialchars($row['medicamento_nome'] ?? '—'); ?></td>
-                                        <td class="px-6 py-4"><?php echo htmlspecialchars($row['numero_lote']); ?></td>
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo movimentacaoBadgeClass($row['tipo']); ?>"><?php echo htmlspecialchars(ucfirst($row['tipo'])); ?></span>
-                                        </td>
-                                        <td class="px-6 py-4"><?php echo formatNumber($row['quantidade']); ?></td>
-                                        <td class="px-6 py-4">
-                                            <?php
-                                            $dataMovimentacao = $row['data_movimentacao'] ?? $row['criado_em'];
-                                            echo $dataMovimentacao ? date('d/m/Y H:i', strtotime($dataMovimentacao)) : '—';
-                                            ?>
-                                        </td>
-                                        <td class="px-6 py-4"><?php echo htmlspecialchars($row['usuario_nome']); ?></td>
-                                        <td class="px-6 py-4 max-w-sm text-sm text-slate-500">
-                                            <?php echo htmlspecialchars($row['motivo'] ?: $row['observacoes'] ?: '—'); ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-        <?php endif; ?>
-
-        <?php if ($reportType === 'estoque_minimo' && empty($errors)): ?>
-            <section class="space-y-6">
-                <div class="glass-card p-6">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Medicamentos abaixo do mínimo</span>
-                    <p class="mt-1 text-3xl font-bold text-rose-600"><?php echo formatNumber($metrics['abaixoMinimo'] ?? 0); ?></p>
-                    <p class="mt-2 text-sm text-slate-500">Itens que precisam de reposição urgente</p>
-                </div>
-
-                <div class="glass-card overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-100 text-left">
-                            <thead class="bg-white">
-                                <tr class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th class="px-6 py-3">Medicamento</th>
-                                    <th class="px-6 py-3">Estoque Total</th>
-                                    <th class="px-6 py-3">Estoque Mínimo</th>
-                                    <th class="px-6 py-3">Diferença</th>
-                                    <th class="px-6 py-3">Apresentação</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                <?php foreach ($data as $row): ?>
-                                    <tr class="text-sm text-slate-600">
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-col">
-                                                <span class="font-semibold text-slate-900"><?php echo htmlspecialchars($row['nome']); ?></span>
-                                                <span class="text-xs text-slate-400">Código: <?php echo htmlspecialchars($row['codigo_barras'] ?? '—'); ?></span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4"><?php echo formatNumber($row['estoque_total']); ?></td>
-                                        <td class="px-6 py-4"><?php echo formatNumber($row['estoque_minimo']); ?></td>
-                                        <td class="px-6 py-4"><?php echo formatNumber($row['estoque_total'] - $row['estoque_minimo']); ?></td>
-                                        <td class="px-6 py-4"><?php echo htmlspecialchars($row['apresentacao']); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-        <?php endif; ?>
-    </main>
+                if (data.success) {
+                    // Remover a linha da tabela
+                    const row = document.getElementById(`movimentacao-row-${movimentacaoId}`);
+                    if (row) {
+                        row.remove();
+                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sucesso!',
+                        text: 'Dispensação deletada com sucesso!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro!',
+                        text: data.message || 'Erro ao deletar dispensação'
+                    });
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro!',
+                    text: 'Erro ao deletar dispensação. Tente novamente.'
+                });
+            }
+        }
+    </script>
 </body>
 </html>

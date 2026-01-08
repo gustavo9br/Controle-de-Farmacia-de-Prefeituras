@@ -179,6 +179,7 @@ $pageTitle = 'Receitas Médicas';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -724,10 +725,60 @@ $pageTitle = 'Receitas Médicas';
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     
-                    const formData = new FormData(e.target);
-                    const data = Object.fromEntries(formData.entries());
+                    // Solicitar senha do funcionário
+                    const { value: senhaFuncionario } = await Swal.fire({
+                        title: 'Senha do Funcionário',
+                        text: 'Digite a senha numérica do funcionário responsável pela dispensação:',
+                        input: 'password',
+                        inputPlaceholder: 'Digite a senha (apenas números)',
+                        inputAttributes: {
+                            maxlength: 20,
+                            pattern: '[0-9]*',
+                            inputmode: 'numeric',
+                            autocomplete: 'off'
+                        },
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirmar',
+                        cancelButtonText: 'Cancelar',
+                        inputValidator: (value) => {
+                            if (!value) {
+                                return 'Por favor, digite a senha!';
+                            }
+                            if (!/^\d+$/.test(value)) {
+                                return 'A senha deve conter apenas números!';
+                            }
+                        }
+                    });
                     
+                    if (!senhaFuncionario) {
+                        return; // Usuário cancelou
+                    }
+                    
+                    // Validar senha do funcionário
                     try {
+                        const validacaoResponse = await fetch('api/validar_senha_funcionario.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ senha: senhaFuncionario })
+                        });
+                        
+                        const validacaoResult = await validacaoResponse.json();
+                        
+                        if (!validacaoResult.success || !validacaoResult.funcionario) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Senha Inválida',
+                                text: validacaoResult.message || 'Senha incorreta ou funcionário inativo'
+                            });
+                            return;
+                        }
+                        
+                        const funcionario = validacaoResult.funcionario;
+                        
+                        const formData = new FormData(e.target);
+                        const data = Object.fromEntries(formData.entries());
+                        data.funcionario_id = funcionario.id;
+                        
                         const response = await fetch('api/dispensar_receita.php', {
                             method: 'POST',
                             headers: {
@@ -739,16 +790,29 @@ $pageTitle = 'Receitas Médicas';
                         const result = await response.json();
                         
                         if (result.success) {
-                            mostrarAlerta('Medicamento dispensado com sucesso!', 'sucesso');
-                            setTimeout(() => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Sucesso!',
+                                text: 'Medicamento dispensado com sucesso!',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
                                 window.location.reload();
-                            }, 1500);
+                            });
                         } else {
-                            mostrarAlerta('Erro: ' + result.message, 'erro');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erro!',
+                                text: result.message || 'Erro ao processar dispensação'
+                            });
                         }
                     } catch (error) {
                         console.error('Erro:', error);
-                        mostrarAlerta('Erro ao processar dispensação', 'erro');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro!',
+                            text: 'Erro ao processar dispensação: ' + error.message
+                        });
                     }
                 });
             }
