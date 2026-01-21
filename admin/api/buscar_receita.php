@@ -9,18 +9,18 @@ $query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $status = isset($_GET['status']) ? $_GET['status'] : '';
 
 try {
-    $whereClauses = ['1=1'];
+    $whereClauses = [];
     $params = [];
     
     if (!empty($query)) {
-        $whereClauses[] = "(p.nome LIKE ? OR p.cpf LIKE ? OR p.cartao_sus LIKE ? OR REPLACE(p.cartao_sus, ' ', '') LIKE ? OR r.numero_receita LIKE ?)";
+        // Busca simples igual buscar_paciente_lista.php - funciona perfeitamente
+        $whereClauses[] = "(p.nome LIKE ? OR p.cpf LIKE ? OR p.cartao_sus LIKE ? OR r.numero_receita LIKE ? OR CAST(r.id AS CHAR) LIKE ?)";
         $searchParam = '%' . $query . '%';
-        $searchParamClean = '%' . preg_replace('/[^0-9]/', '', $query) . '%';
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParamClean;
-        $params[] = $searchParam;
+        $params[] = $searchParam; // Nome do paciente
+        $params[] = $searchParam; // CPF
+        $params[] = $searchParam; // Cartão SUS
+        $params[] = $searchParam; // Número da receita
+        $params[] = $searchParam; // ID da receita
     }
     
     if (!empty($status) && in_array($status, ['ativa', 'finalizada', 'vencida', 'cancelada'])) {
@@ -28,7 +28,7 @@ try {
         $params[] = $status;
     }
     
-    $whereClause = 'WHERE ' . implode(' AND ', $whereClauses);
+    $whereClause = !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
     
     // Buscar receitas
     $sql = "SELECT 
@@ -100,7 +100,7 @@ try {
     echo json_encode([
         'success' => true,
         'receitas' => $receitas
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     
 } catch (PDOException $e) {
     echo json_encode([

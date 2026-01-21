@@ -748,52 +748,91 @@ async function carregarHistoricoDispensacoes(pacienteId) {
     console.log('🔄 Carregando histórico para paciente_id:', pacienteId);
     
     try {
-        const url = `${API_BASE}buscar_dispensacoes_paciente.php?paciente_id=${pacienteId}`;
-        console.log('📡 URL da API:', url);
+        // Buscar dispensações e medicamentos pendentes em paralelo
+        const [dispensacoesResponse, pendentesResponse] = await Promise.all([
+            fetch(`${API_BASE}buscar_dispensacoes_paciente.php?paciente_id=${pacienteId}`),
+            fetch(`${API_BASE}buscar_medicamentos_pendentes_paciente.php?paciente_id=${pacienteId}`)
+        ]);
         
-        const response = await fetch(url);
-        console.log('📥 Response status:', response.status);
+        const dispensacoesData = await dispensacoesResponse.json();
+        const pendentesData = await pendentesResponse.json();
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        console.log('📊 Dados recebidos - Dispensações:', dispensacoesData);
+        console.log('📊 Dados recebidos - Pendentes:', pendentesData);
+        
+        // Combinar pendentes (laranja) + dispensações (verde) até ter 5 itens
+        const itens = [];
+        
+        // Adicionar pendentes primeiro (máximo 5)
+        if (pendentesData.success && pendentesData.pendentes && pendentesData.pendentes.length > 0) {
+            const pendentesLimitados = pendentesData.pendentes.slice(0, 5);
+            pendentesLimitados.forEach(p => {
+                itens.push({
+                    tipo: 'pendente',
+                    ...p
+                });
+            });
         }
         
-        const text = await response.text();
-        console.log('📥 Response text:', text);
-        
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            console.error('❌ Erro ao fazer parse do JSON:', e);
-            throw new Error('Resposta inválida da API');
+        // Completar com dispensações até ter 5 itens no total
+        if (dispensacoesData.success && dispensacoesData.dispensacoes && dispensacoesData.dispensacoes.length > 0) {
+            const espacoRestante = 5 - itens.length;
+            if (espacoRestante > 0) {
+                const dispensacoesLimitadas = dispensacoesData.dispensacoes.slice(0, espacoRestante);
+                dispensacoesLimitadas.forEach(d => {
+                    itens.push({
+                        tipo: 'dispensacao',
+                        ...d
+                    });
+                });
+            }
         }
         
-        console.log('📊 Dados recebidos:', data);
-        
-        if (!data.success) {
-            console.error('❌ API retornou erro:', data.message);
-            container.innerHTML = `<div class="text-center py-2 text-red-400 text-xs">${data.message || 'Erro ao buscar dispensações'}</div>`;
-            return;
-        }
-        
-        if (data.dispensacoes && data.dispensacoes.length > 0) {
-            console.log('✅ Renderizando', data.dispensacoes.length, 'dispensações');
-            container.innerHTML = data.dispensacoes.map(d => `
-                <div class="p-2.5 bg-white rounded-lg border border-emerald-100 hover:border-emerald-300 transition-colors">
-                    <div class="flex items-center justify-between gap-2">
-                        <p class="text-xs font-semibold text-gray-800 flex-1 min-w-0 truncate">${d.medicamento_nome}</p>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700">${d.quantidade}un</span>
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">${formatarDataHora(d.data_dispensacao)}</span>
+        // Renderizar itens
+        if (itens.length > 0) {
+            console.log('✅ Renderizando', itens.length, 'itens');
+            container.innerHTML = itens.map(item => {
+                if (item.tipo === 'pendente') {
+                    // Card laranja para medicamentos pendentes de receita
+                    const basePath = getBasePath();
+                    return `
+                        <div class="p-2.5 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border-2 border-orange-200 hover:border-orange-300 transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-semibold text-gray-800 truncate">${item.medicamento_nome}</p>
+                                    <p class="text-xs text-gray-600 mt-0.5">Receita #${item.receita_id}</p>
+                                </div>
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold bg-orange-100 text-orange-700">${item.quantidade_pendente}un</span>
+                                    <a 
+                                        href="${basePath}/receitas_dispensar.php?id=${item.receita_id}" 
+                                        class="inline-flex items-center justify-center px-2 py-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg text-xs font-medium transition-all shadow-sm hover:shadow"
+                                        title="Ir para dispensação da receita"
+                                    >
+                                        Dispensar
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            `).join('');
+                    `;
+                } else {
+                    // Card verde para dispensações já realizadas
+                    return `
+                        <div class="p-2.5 bg-white rounded-lg border border-emerald-100 hover:border-emerald-300 transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-semibold text-gray-800 flex-1 min-w-0 truncate">${item.medicamento_nome}</p>
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700">${item.quantidade}un</span>
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">${formatarDataHora(item.data_dispensacao)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
         } else {
-            console.log('⚠️ Nenhuma dispensação encontrada ou dados inválidos');
-            const mensagem = data.message || 'Nenhuma dispensação registrada';
-            container.innerHTML = `<div class="text-center py-2 text-gray-400 text-xs">${mensagem}</div>`;
+            console.log('⚠️ Nenhum item encontrado');
+            container.innerHTML = `<div class="text-center py-2 text-gray-400 text-xs">Nenhuma dispensação ou receita pendente</div>`;
         }
     } catch (error) {
         console.error('❌ Erro ao carregar histórico:', error);

@@ -449,12 +449,28 @@ $pageTitle = 'Receitas Médicas';
             const searchInput = document.getElementById('search');
             const statusSelect = document.getElementById('status');
             
+            // Preencher campo de busca com valor da URL se existir
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParam = urlParams.get('search');
+            if (searchParam && searchInput) {
+                searchInput.value = searchParam;
+            }
+            
             if (searchInput) {
                 searchInput.addEventListener('input', function(e) {
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(() => {
                         buscarReceitas();
                     }, 300);
+                });
+                
+                // Permitir busca ao pressionar Enter
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        buscarReceitas();
+                    }
                 });
             }
             
@@ -476,19 +492,43 @@ $pageTitle = 'Receitas Médicas';
         });
         
         async function buscarReceitas() {
-            const query = document.getElementById('search').value.trim();
+            const searchInput = document.getElementById('search');
+            const query = searchInput ? searchInput.value.trim() : '';
             const status = document.getElementById('status').value;
             const container = document.getElementById('receitasContainer');
             const loader = document.getElementById('searchLoader');
+            
+            if (!container) {
+                console.error('❌ Container de receitas não encontrado');
+                return;
+            }
+            
+            // Se não há query e não há filtro de status, recarregar a página para mostrar todas as receitas
+            if (!query && !status) {
+                window.location.href = 'receitas.php';
+                return;
+            }
             
             if (loader) loader.classList.remove('hidden');
             
             try {
                 const params = new URLSearchParams();
-                if (query) params.append('q', query);
-                if (status) params.append('status', status);
+                if (query) {
+                    params.append('q', query);
+                }
+                if (status) {
+                    params.append('status', status);
+                }
                 
-                const response = await fetch(`api/buscar_receita.php?${params.toString()}`);
+                // Usar caminho relativo simples - a API está em admin/api/
+                const apiUrl = `api/buscar_receita.php?${params.toString()}`;
+                
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 if (loader) loader.classList.add('hidden');
@@ -499,13 +539,20 @@ $pageTitle = 'Receitas Médicas';
                     container.innerHTML = `
                         <div class="glass-card flex flex-col items-center justify-center gap-3 px-6 py-14 text-center text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
-                            <p class="text-sm">Nenhuma receita encontrada.</p>
+                            <p class="text-sm">${data.message || 'Nenhuma receita encontrada.'}</p>
                         </div>
                     `;
                 }
             } catch (error) {
-                console.error('Erro ao buscar receitas:', error);
+                console.error('❌ Erro ao buscar receitas:', error);
                 if (loader) loader.classList.add('hidden');
+                container.innerHTML = `
+                    <div class="glass-card flex flex-col items-center justify-center gap-3 px-6 py-14 text-center text-red-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <p class="text-sm">Erro ao buscar receitas: ${error.message}</p>
+                        <p class="text-xs mt-2">Verifique o console do navegador para mais detalhes.</p>
+                    </div>
+                `;
             }
         }
         

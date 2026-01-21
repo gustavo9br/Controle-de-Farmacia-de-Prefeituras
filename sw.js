@@ -49,6 +49,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const requestUrl = new URL(event.request.url);
+
+  // Ignorar requisições de extensões do navegador (chrome-extension, moz-extension, etc)
+  if (requestUrl.protocol === 'chrome-extension:' || 
+      requestUrl.protocol === 'moz-extension:' || 
+      requestUrl.protocol === 'safari-extension:' ||
+      requestUrl.protocol === 'ms-browser-extension:') {
+    return;
+  }
+
+  // Ignorar requisições que não são HTTP/HTTPS
+  if (requestUrl.protocol !== 'http:' && requestUrl.protocol !== 'https:') {
+    return;
+  }
+
   // Ignorar requisições de API (sempre buscar do servidor)
   if (event.request.url.includes('/api/')) {
     return;
@@ -61,11 +76,22 @@ self.addEventListener('fetch', (event) => {
         // Clonar a resposta
         const responseToCache = response.clone();
 
-        // Cachear apenas respostas válidas
-        if (response.status === 200) {
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+        // Cachear apenas respostas válidas e que sejam do mesmo origin
+        // (evita tentar fazer cache de recursos de outros domínios ou extensões)
+        if (response.status === 200 && 
+            response.type === 'basic' && 
+            requestUrl.protocol.startsWith('http')) {
+          try {
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(event.request, responseToCache).catch((error) => {
+                // Ignorar erros de cache silenciosamente (ex: extensões do Chrome)
+                console.warn('[Service Worker] Erro ao fazer cache:', error.message);
+              });
+            });
+          } catch (error) {
+            // Ignorar erros de cache silenciosamente
+            console.warn('[Service Worker] Erro ao abrir cache:', error.message);
+          }
         }
 
         return response;
