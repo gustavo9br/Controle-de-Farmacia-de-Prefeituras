@@ -504,30 +504,35 @@ async function finalizarDispensacao() {
         }
     }
     
-    // Solicitar senha do funcionário usando SweetAlert2
-    const { value: senhaFuncionario } = await Swal.fire({
-        title: 'Senha do Funcionário',
-        text: 'Digite a senha numérica do funcionário responsável pela dispensação:',
-        input: 'password',
-        inputPlaceholder: 'Digite a senha (apenas números)',
-        inputAttributes: {
-            maxlength: 20,
-            pattern: '[0-9]*',
-            inputmode: 'numeric',
-            autocomplete: 'off'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Confirmar',
-        cancelButtonText: 'Cancelar',
-        inputValidator: (value) => {
-            if (!value) {
-                return 'Por favor, digite a senha!';
+        // Solicitar senha do funcionário usando SweetAlert2
+        const { value: senhaFuncionario } = await Swal.fire({
+            title: 'Senha do Funcionário',
+            text: 'Digite a senha numérica do funcionário responsável pela dispensação:',
+            input: 'password',
+            inputPlaceholder: 'Digite a senha (apenas números)',
+            inputAttributes: {
+                maxlength: 20,
+                pattern: '[0-9]*',
+                inputmode: 'numeric',
+                autocomplete: 'new-password', // Usa 'new-password' para evitar autocomplete
+                'data-form-type': 'other', // Indica que não é um formulário de login
+                name: 'funcionario-senha-temp', // Nome único para evitar autocomplete
+                id: 'swal-funcionario-senha-' + Date.now() // ID único com timestamp
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Confirmar',
+            cancelButtonText: 'Cancelar',
+            allowOutsideClick: false,
+            allowEscapeKey: true,
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Por favor, digite a senha!';
+                }
+                if (!/^\d+$/.test(value)) {
+                    return 'A senha deve conter apenas números!';
+                }
             }
-            if (!/^\d+$/.test(value)) {
-                return 'A senha deve conter apenas números!';
-            }
-        }
-    });
+        });
     
     if (!senhaFuncionario) {
         return; // Usuário cancelou

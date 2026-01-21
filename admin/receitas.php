@@ -782,11 +782,16 @@ $pageTitle = 'Receitas Médicas';
                             maxlength: 20,
                             pattern: '[0-9]*',
                             inputmode: 'numeric',
-                            autocomplete: 'off'
+                            autocomplete: 'new-password', // Usa 'new-password' para evitar autocomplete
+                            'data-form-type': 'other', // Indica que não é um formulário de login
+                            name: 'funcionario-senha-temp', // Nome único para evitar autocomplete
+                            id: 'swal-funcionario-senha-' + Date.now() // ID único com timestamp
                         },
                         showCancelButton: true,
                         confirmButtonText: 'Confirmar',
                         cancelButtonText: 'Cancelar',
+                        allowOutsideClick: false,
+                        allowEscapeKey: true,
                         inputValidator: (value) => {
                             if (!value) {
                                 return 'Por favor, digite a senha!';
